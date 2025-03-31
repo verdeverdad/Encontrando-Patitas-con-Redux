@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Pressable, ScrollView,Image} from "react-native";
+import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Pressable, ScrollView, Image } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import { setTodos, addTodo, updateTodo, deleteTodo} from "@/redux/nuevaPublicacion";
+import { setTodos, addTodo, updateTodo, deleteTodo } from "@/redux/nuevaPublicacion";
 import { increment, decrement, incrementByAmount } from "@/redux/contadorSlice";
 import { setPerdidos, addPerdidos, updatePerdidos, deletePerdidos } from "@/redux/perdidosSlice";
 
@@ -130,49 +130,44 @@ export default function Index() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-        <View style={{ flexGrow: 1, justifyContent: 'flex-start', alignItems: 'center', marginTop: 0, backgroundColor: '#e1e1e1' }}>
-          <Image
-            source={require('../assets/images/encontrandoPatitas.png')}
-            style={{
-              width: 200,
-              height: 200,
-              marginVertical: 30,
-              resizeMode: 'contain',
-            }}
+      <View style={{ flexGrow: 1, justifyContent: 'flex-start', alignItems: 'center', marginTop: 0, backgroundColor: '#e1e1e1' }}>
+        <Image
+          source={require('../assets/images/encontrandoPatitas.png')}
+          style={{
+            width: 200,
+            height: 200,
+            marginVertical: 30,
+            resizeMode: 'contain',
+          }}
+        />
+      </View>
+      <Text style={styles.texto}> "Encontrando Patitas" es una plataforma dedicada a reunir a mascotas perdidas con sus familias y a conectar a animales sin hogar con personas que desean adoptar. Nuestra misión es crear una comunidad compasiva donde cada patita encuentre su camino a casa.</Text>
+
+      <View style={styles.container}>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Ingrese un nuevo Todo"
+            value={input}
+            onChangeText={setInput}
           />
+          <Button title="Agregar" onPress={handleAddTodo} />
         </View>
-        <Text style={styles.texto}> "Encontrando Patitas" es una plataforma dedicada a reunir a mascotas perdidas con sus familias y a conectar a animales sin hogar con personas que desean adoptar. Nuestra misión es crear una comunidad compasiva donde cada patita encuentre su camino a casa.</Text>
 
-        <Text style={styles.texto}> "Encontrando Patitas" es una plataforma dedicada a reunir a mascotas perdidas con sus familias y a conectar a animales sin hogar con personas que desean adoptar. Nuestra misión es crear una comunidad compasiva donde cada patita encuentre su camino a casa.</Text>
-
-
-
-
-        <View style={styles.container}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ingrese un nuevo Todo"
-              value={input}
-              onChangeText={setInput}
+        <FlatList
+          data={todos}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TodoListItem
+              todo={item}
+              isEditing={editId === item.id}
+              onDelete={handleDeleteTodo}
+              onSetEditMode={handleSetEditMode}
+              onSave={handleUpdateTodo}
             />
-            <Button title="Agregar" onPress={handleAddTodo} />
-          </View>
-
-          <FlatList
-            data={todos}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <TodoListItem
-                todo={item}
-                isEditing={editId === item.id}
-                onDelete={handleDeleteTodo}
-                onSetEditMode={handleSetEditMode}
-                onSave={handleUpdateTodo}
-              />
-            )}
-          />
-        </View>
+          )}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -220,5 +215,12 @@ const styles = StyleSheet.create({
   row: {
     paddingLeft: 10,
     width: "60%",
+  },
+  texto: {
+
+    color: "#e1e1e1",
+    fontSize: 22,
+    padding: 25,
+    backgroundColor: '#a31288',
   },
 });

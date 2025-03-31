@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Pressable, ScrollView, Image } from "react-native";
+import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Pressable, Image } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { setPerdidos, addPerdidos, updatePerdidos, deletePerdidos } from "@/redux/perdidosSlice";
 import { RootState } from "@/redux/store";
 import { router } from "expo-router";
-import perdidos from "@/utils/perdidos";
+import * as FileSystem from 'expo-file-system';
+
+const JSON_FILE_URI = FileSystem.documentDirectory + 'perdidos.json';
 
 type Todo = {
     id: number;
@@ -53,6 +55,7 @@ const PerdidosListItem = ({ todo, isEditing, onDelete, onSetEditMode, onSave }: 
                     </View>
                 ) : (
                     <View>
+                        <Image source={{ uri: todo.image }} style={styles.image} />
                         <Text style={styles.todoText}>{todo.titulo}</Text>
                         <Text style={styles.todoText}>Edad: {todo.edad}</Text>
                         <Text style={styles.todoText}>Sexo: {todo.sexo}</Text>
@@ -76,39 +79,63 @@ export default function PerdidosPantalla() {
     const [input, setInput] = useState("");
     const [edad, setEdad] = useState("");
     const [sexo, setSexo] = useState("");
-
+    const [localidad, setLocalidad] = useState("");
+    const [traslado, setTraslado] = useState("");
+    const [estado, setEstado] = useState("");
+    const [image, setImage] = useState("");
     const [editId, setEditId] = useState<number | null>(null);
 
     useEffect(() => {
-        const formattedPerdidos = perdidos.map((item) => ({
-            id: item.id,
-            titulo: item.titulo,
-            edad: item.edad,
-            sexo: item.sexo,
-            estado: item.estado,
-            localidad: item.localidad,
-            traslado: item.traslado,
-            image: item.image,
-        }));
-        dispatch(setPerdidos(formattedPerdidos));
+        const loadData = async () => {
+            try {
+                const fileInfo = await FileSystem.getInfoAsync(JSON_FILE_URI);
+                if (fileInfo.exists) {
+                    const jsonData = await FileSystem.readAsStringAsync(JSON_FILE_URI);
+                    const parsedData = JSON.parse(jsonData);
+                    dispatch(setPerdidos(parsedData));
+                }
+            } catch (error) {
+                console.error("Error loading data:", error);
+            }
+        };
+        loadData();
     }, [dispatch]);
 
+    const saveData = async (data: Todo[]) => {
+        try {
+            await FileSystem.writeAsStringAsync(JSON_FILE_URI, JSON.stringify(data));
+        } catch (error) {
+            console.error("Error saving data:", error);
+        }
+    };
+
     const handleAddPerdidos = () => {
-        if (input.trim() && edad.trim() )  {
+        if (input.trim() && edad.trim() && sexo.trim() && localidad.trim() && traslado.trim() && estado.trim() && image.trim()) {
             dispatch(addPerdidos(input));
+            saveData([...todos, { id: Date.now(), titulo: input, edad: parseInt(edad), sexo, localidad, traslado, estado, image }] as Todo[]);
+
             setInput("");
             setEdad("");
+            setSexo("");
+            setLocalidad("");
+            setTraslado("");
+            setEstado("");
+            setImage("");
         }
     };
 
     const handleUpdatePerdidos = ({ id, titulo, edad }: Todo) => {
         dispatch(updatePerdidos({ id, newText: titulo, edad: edad }));
         setEditId(null);
+        saveData(todos.map(todo => todo.id === id ? { ...todo, titulo: titulo || todo.titulo, edad: edad || todo.edad } : todo) as Todo[]);
     };
 
     const handleDeletePerdidos = (id: number) => {
         dispatch(deletePerdidos(id));
+        const updatedTodos = todos.filter(todo => todo.id !== id);
+        saveData(updatedTodos);
     };
+    
 
     const handleSetEditMode = (id: number) => {
         setEditId(id);
@@ -118,8 +145,12 @@ export default function PerdidosPantalla() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.inputContainer}>
                 <TextInput style={styles.input} placeholder="Ingrese un titulo a la publicacion" value={input} onChangeText={setInput} />
-                <TextInput style={styles.input} placeholder="Ingrese edad" value={edad} onChangeText={setEdad} />
-                <TextInput style={styles.input} placeholder="Ingrese sexo" value={sexo} onChangeText={setSexo} />
+                <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
+                <TextInput style={styles.input} placeholder="Ingrese sexo de la mascota" value={sexo} onChangeText={setSexo} />
+                <TextInput style={styles.input} placeholder="Ingrese localidad" value={localidad} onChangeText={setLocalidad} />
+                <TextInput style={styles.input} placeholder="Ingrese traslado" value={traslado} onChangeText={setTraslado} />
+                <TextInput style={styles.input} placeholder="Ingrese estado de la mascota" value={estado} onChangeText={setEstado} />
+                <TextInput style={styles.input} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
                 <Button title="Agregar" onPress={handleAddPerdidos} />
             </View>
 
@@ -142,4 +173,5 @@ const styles = StyleSheet.create({
     todoText: { fontSize: 16 },
     buttonContainer: { flexDirection: "row", justifyContent: "flex-end", gap: 5, width: "40%" },
     row: { paddingLeft: 10, width: "60%" },
+    image: { width: 100, height: 100, margin: 10, }
 });

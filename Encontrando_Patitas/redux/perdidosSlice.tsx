@@ -3,14 +3,28 @@ import { createSlice } from "@reduxjs/toolkit";
 const perdidosSlice = createSlice({
   name: "todos",
   initialState: {
-    data: [] as { id: number; text: string }[], // Store list of todos
+    data: [] as {
+      id: number;
+      titulo: string;
+      estado?: string;
+      sexo?: string;
+      edad?: string;
+      localidad?: string;
+      traslado?: string;
+      image?: string;
+}[], // Store list of todos
   },
   reducers: {
     setPerdidos: (state, action) => {
       state.data = action.payload;
     },
     addPerdidos: (state, action) => {
-      state.data.push({ id: Date.now(), text: action.payload });
+      state.data.push({
+        id: Date.now(),
+         estado: "",
+        titulo: "",
+        edad: undefined
+      });
     },
     updatePerdidos: (state, action) => {
       const { id, newText } = action.payload;
