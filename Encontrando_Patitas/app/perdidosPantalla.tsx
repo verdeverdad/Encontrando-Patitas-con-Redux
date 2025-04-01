@@ -1,15 +1,66 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Pressable, Image } from "react-native";
+import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, Pressable } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import { setPerdidos, addPerdidos, updatePerdidos, deletePerdidos } from "@/redux/perdidosSlice";
-import { RootState } from "@/redux/store";
+import { setPerdidos } from "@/redux/perdidosSlice";
+import * as ImagePicker from "expo-image-picker";
+import { Picker } from "@react-native-picker/picker";
+import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import * as FileSystem from 'expo-file-system';
+import { collection, getDocs, addDoc } from "firebase/firestore";
+import { db } from "@/firebaseConfig"
+import MascotasLista from "@/components/mascotas";
 
-const JSON_FILE_URI = FileSystem.documentDirectory + 'perdidos.json';
 
+const sampleData = [
+
+    {
+
+        id: "1",
+
+        titulo: "Dos perritos cachorros",
+
+        estado: "en adopcion",
+
+        sexo: "machos",
+
+        edad: 2,
+
+        localidad: "en tal lado",
+
+        traslado: "no",
+
+        image: "https://via.placeholder.com/150",
+
+    },
+
+    {
+
+        id: "2",
+
+        titulo: "Perro grande marron",
+
+        estado: "Perdido",
+
+        sexo: "machos",
+
+        edad: 2,
+
+        localidad: "en tal lado",
+
+        traslado: "no",
+
+        image: "https://via.placeholder.com/150",
+
+    },
+
+];
+interface RootState {
+    todos: {
+        data: Todo[];
+    };
+}
 type Todo = {
-    id: number;
+    id?: string; // El ID es opcional ya que Firebase lo genera
     titulo: string;
     estado?: string;
     sexo?: string;
@@ -17,60 +68,6 @@ type Todo = {
     localidad?: string;
     traslado?: string;
     image?: string;
-};
-
-interface PerdidosListitemProps {
-    todo: Todo;
-    isEditing: boolean;
-    onDelete: (id: number) => void;
-    onSetEditMode: (id: number) => void;
-    onSave: ({ id, titulo }: Todo) => void;
-}
-
-const PerdidosListItem = ({ todo, isEditing, onDelete, onSetEditMode, onSave }: PerdidosListitemProps) => {
-    const [editTitulo, setEditTitulo] = useState(todo.titulo);
-    const [editEdad, setEditEdad] = useState(todo.edad);
-
-    const onDeleteHandler = () => {
-        onDelete(todo.id);
-    };
-
-    const onEditPressHandler = () => {
-        onSetEditMode(todo.id);
-    };
-
-    const onSaveHander = () => {
-        if (editTitulo.trim() && editEdad !== null && editEdad !== undefined) {
-            onSave({ id: todo.id, titulo: editTitulo, edad: todo.edad });
-        }
-    };
-
-    return (
-        <Pressable style={styles.todoItem} onPress={() => router.navigate({ pathname: "/perdidosPantalla", params: { id: todo.id } })}>
-            <View style={styles.row}>
-                {isEditing ? (
-                    <View style={styles.row}>
-                        <TextInput style={styles.input} value={editTitulo} onChangeText={(titulo) => setEditTitulo(titulo)} />
-                        <TextInput style={styles.input} value={editEdad} onChangeText={(edad) => setEditEdad(edad)} keyboardType="numeric" />
-                    </View>
-                ) : (
-                    <View>
-                        <Image source={{ uri: todo.image }} style={styles.image} />
-                        <Text style={styles.todoText}>{todo.titulo}</Text>
-                        <Text style={styles.todoText}>Edad: {todo.edad}</Text>
-                        <Text style={styles.todoText}>Sexo: {todo.sexo}</Text>
-                        <Text style={styles.todoText}>Estado: {todo.estado}</Text>
-                        <Text style={styles.todoText}>Localidad: {todo.localidad}</Text>
-                        <Text style={styles.todoText}>Traslado: {todo.traslado}</Text>
-                    </View>
-                )}
-            </View>
-            <View style={styles.buttonContainer}>
-                {isEditing ? <Button title="Salvar" onPress={onSaveHander} /> : <Button title="Editar" onPress={onEditPressHandler} />}
-                <Button title="Borrar" color="red" onPress={onDeleteHandler} />
-            </View>
-        </Pressable>
-    );
 };
 
 export default function PerdidosPantalla() {
@@ -82,38 +79,72 @@ export default function PerdidosPantalla() {
     const [localidad, setLocalidad] = useState("");
     const [traslado, setTraslado] = useState("");
     const [estado, setEstado] = useState("");
+    const [mascotaImage, setMascotaImage] = useState<string | null>(null);
     const [image, setImage] = useState("");
-    const [editId, setEditId] = useState<number | null>(null);
-
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const fileInfo = await FileSystem.getInfoAsync(JSON_FILE_URI);
-                if (fileInfo.exists) {
-                    const jsonData = await FileSystem.readAsStringAsync(JSON_FILE_URI);
-                    const parsedData = JSON.parse(jsonData);
-                    dispatch(setPerdidos(parsedData));
-                }
-            } catch (error) {
-                console.error("Error loading data:", error);
-            }
-        };
-        loadData();
-    }, [dispatch]);
-
-    const saveData = async (data: Todo[]) => {
+    const [loading, setLoading] = useState(true); // Indicador de carga
+    const [selectedValue, setSelectedValue] = useState("perdido"); // Estado inicial del Picker
+    const [modalVisible, setModalVisible] = useState(false); // Estado para controlar el modal
+    const loadData = async () => {
+        setLoading(true);
         try {
-            await FileSystem.writeAsStringAsync(JSON_FILE_URI, JSON.stringify(data));
+            const querySnapshot = await getDocs(collection(db, "perdidos"));
+            const remoteData = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            dispatch(setPerdidos(remoteData));
         } catch (error) {
-            console.error("Error saving data:", error);
+            console.error("Error al cargar datos desde Firebase:", error);
+            dispatch(setPerdidos(sampleData)); // Carga sampleData en caso de error
+        } finally {
+            setLoading(false);
+        }
+    };
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 4],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setMascotaImage(result.assets[0].uri);
+            setImage(result.assets[0].uri); // Actualiza la URL de la imagen
         }
     };
 
-    const handleAddPerdidos = () => {
-        if (input.trim() && edad.trim() && sexo.trim() && localidad.trim() && traslado.trim() && estado.trim() && image.trim()) {
-            dispatch(addPerdidos(input));
-            saveData([...todos, { id: Date.now(), titulo: input, edad: parseInt(edad), sexo, localidad, traslado, estado, image }] as Todo[]);
+    useEffect(() => {
+        loadData();
+    }, []);
 
+
+    const handleAddPerdidos = async () => {
+        if (
+            input.trim() &&
+            edad.trim() &&
+            sexo.trim() &&
+            localidad.trim() &&
+            traslado.trim() &&
+            estado.trim() &&
+            image.trim()
+        ) {
+            const newTodo: Todo = {
+                titulo: input,
+                edad,
+                sexo,
+                localidad,
+                traslado,
+                estado,
+                image,
+            };
+            try {
+                await addDoc(collection(db, "perdidos"), newTodo);
+                console.log("Publicación agregada correctamente a Firebase.");
+                loadData(); // Actualiza la lista después de agregar
+            } catch (error) {
+                console.error("Error al agregar publicación a Firebase:", error);
+            }
             setInput("");
             setEdad("");
             setSexo("");
@@ -121,57 +152,252 @@ export default function PerdidosPantalla() {
             setTraslado("");
             setEstado("");
             setImage("");
+            setMascotaImage(null);
+            setModalVisible(false);
+        } else {
+            alert("Debes completar todos los datos");
         }
     };
 
-    const handleUpdatePerdidos = ({ id, titulo, edad }: Todo) => {
-        dispatch(updatePerdidos({ id, newText: titulo, edad: edad }));
-        setEditId(null);
-        saveData(todos.map(todo => todo.id === id ? { ...todo, titulo: titulo || todo.titulo, edad: edad || todo.edad } : todo) as Todo[]);
-    };
-
-    const handleDeletePerdidos = (id: number) => {
-        dispatch(deletePerdidos(id));
-        const updatedTodos = todos.filter(todo => todo.id !== id);
-        saveData(updatedTodos);
-    };
-    
-
-    const handleSetEditMode = (id: number) => {
-        setEditId(id);
-    };
+    if (loading) {
+        return (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ActivityIndicator size="large" />
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.inputContainer}>
-                <TextInput style={styles.input} placeholder="Ingrese un titulo a la publicacion" value={input} onChangeText={setInput} />
-                <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
-                <TextInput style={styles.input} placeholder="Ingrese sexo de la mascota" value={sexo} onChangeText={setSexo} />
-                <TextInput style={styles.input} placeholder="Ingrese localidad" value={localidad} onChangeText={setLocalidad} />
-                <TextInput style={styles.input} placeholder="Ingrese traslado" value={traslado} onChangeText={setTraslado} />
-                <TextInput style={styles.input} placeholder="Ingrese estado de la mascota" value={estado} onChangeText={setEstado} />
-                <TextInput style={styles.input} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-                <Button title="Agregar" onPress={handleAddPerdidos} />
-            </View>
+
+
+            {/* Modal para agregar una mascota */}
+            <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+                <View style={[styles.modalContent, styles.modalContainer]}>
+                    <ScrollView>
+                        <Pressable onPress={() => setModalVisible(false)}>
+                            <MaterialIcons name="close" color="red" size={22} />
+                        </Pressable>
+                        <Text style={styles.titulo}>PUBLICAR UNA MASCOTA</Text>
+                        <TextInput style={styles.input} placeholder="Ingrese un titulo a la publicacion" value={input} onChangeText={setInput} />
+                        <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
+                        <TextInput style={styles.input} placeholder="Ingrese sexo de la mascota" value={sexo} onChangeText={setSexo} />
+                        <TextInput style={styles.input} placeholder="Ingrese localidad" value={localidad} onChangeText={setLocalidad} />
+                        <TextInput style={styles.input} placeholder="Ingrese traslado" value={traslado} onChangeText={setTraslado} />
+                        <TextInput style={styles.input} placeholder="Ingrese estado de la mascota" value={estado} onChangeText={setEstado} />
+                        <TextInput style={styles.input} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
+                        <Text style={styles.input2}>Selecciona un estado:</Text>
+                        <Picker
+                            selectedValue={selectedValue}
+                            onValueChange={(itemValue) => setSelectedValue(itemValue)}
+                            style={styles.picker}
+                        >
+                            <Picker.Item label="PERDIDO/A" value="perdido" />
+                            <Picker.Item label="ENCONTRADO/A" value="encontrado" />
+                            <Picker.Item label="EN ADOPCIÓN" value="enAdopcion" />
+                        </Picker>
+                        <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+                            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.selectButton, styles.rojoBg]} onPress={handleAddPerdidos}>
+                            <Text style={styles.blanco}>PUBLICAR MASCOTA</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.selectButton, styles.azuladoBg]} onPress={() => setModalVisible(false)}>
+                            <Text style={[styles.blanco,]}>CERRAR</Text>
+                        </TouchableOpacity>
+                        {mascotaImage && <Image source={{ uri: mascotaImage }} style={styles.image} />}
+                    </ScrollView>
+                </View>
+            </Modal>
+
 
             <View style={styles.container}>
-                <FlatList data={todos} keyExtractor={(item) => item.id.toString()} renderItem={({ item }) => (
-                    <PerdidosListItem todo={item} isEditing={editId === item.id} onDelete={handleDeletePerdidos} onSetEditMode={handleSetEditMode} onSave={handleUpdatePerdidos} />
-                )} />
-                <Button title="index" onPress={() => router.push("/")} />
+                <FlatList
+                    data={todos}
+                    keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
+                    renderItem={({ item }) => (
+                        <View style={styles.item}>
+                            <Image source={{ uri: item.image }} style={styles.image} />
+                            <View style={styles.details}>
+                                <Text style={styles.titulo}>{item.titulo}</Text>
+                                <Text style={styles.edad}>Edad: {item.edad}</Text>
+                                <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
+                                <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
+                                <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                                <Text style={styles.estado}>Estado: {item.estado?.toLocaleUpperCase()}</Text>
+                                <Text> mas info...</Text>
+                                <TouchableOpacity style={[styles.selectButton, styles.celesteBg]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
+                                    <Text style={styles.blanco}>CONTACTAR</Text>
+                                </TouchableOpacity>
+                            </View>
+
+
+                        </View>
+                    )}
+                />
+                
             </View>
+            {/* Botón para abrir el modal */}
+
+            {
+                !modalVisible && ( // Renderiza el botón solo si modalVisible es falso
+                    <TouchableOpacity style={[styles.selectButtonModal, styles.fixedButton]} onPress={() => setModalVisible(true)}>
+                        <Text style={styles.blanco}>PUBLICAR UNA MASCOTA</Text>
+                    </TouchableOpacity>
+                )
+            }
+            <View >
+                <TouchableOpacity style={[styles.selectButtonHome, styles.azuladoBg]} onPress={() => router.push('/')} >
+                    <Text style={styles.blanco}>VOLVER AL INICIO</Text>
+                </TouchableOpacity>
+                
+
+            </View>
+            
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    container: { flex: 1, padding: 20 },
-    inputContainer: { flexDirection: "column", padding: 20 },
+    container: { flex: 1 },
+    inputContainer: { flexDirection: "row", padding: 10 },
     input: { marginTop: 10, padding: 10, borderColor: "gray", borderWidth: 1 },
-    todoItem: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#fff", marginVertical: 5, borderRadius: 5, elevation: 3 },
-    todoText: { fontSize: 16 },
-    buttonContainer: { flexDirection: "row", justifyContent: "flex-end", gap: 5, width: "40%" },
-    row: { paddingLeft: 10, width: "60%" },
-    image: { width: 100, height: 100, margin: 10, }
+    details: { flex: 1, margin: 15 },
+    titulo: { fontSize: 18, fontWeight: "bold" },
+    edad: { fontSize: 14, color: "gray" },
+    sexo: { fontSize: 14, color: "gray" },
+    localidad: { fontSize: 14, color: "gray" },
+    estado: { fontSize: 18, color: "gray", fontWeight: "bold" },
+    image: { width: 180, height: 220, marginBottom: 10, backgroundColor: "gray" },
+    picker: { height: 80, width: "100%", },
+    input2: {
+        height: 40,
+        margin: 5,
+        paddingHorizontal: 10,
+    },
+    modalContainer: {
+        padding: 20,
+        flexDirection: 'row'
+    },
+
+    modalBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        width: '100%',
+    },
+    optionButton: {
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#452790',
+    },
+    selectButtonModal: {
+        borderWidth: 2,
+        backgroundColor: "#f01250",
+        color: '#ffffff',
+        borderColor: 'black',
+        padding: 10,
+        borderRadius: 10,
+        marginBottom: 30,
+        width: 'auto',
+        fontSize: 16,
+        height: 60,
+        alignItems: "center", // Centra el texto horizontalmente
+        justifyContent: "center", // Centra el texto verticalmente
+    },
+    selectButton: {
+        borderWidth: 2,
+        backgroundColor: "#f01250",
+        color: '#ffffff',
+        borderColor: 'black',
+        borderRadius: 10,
+        marginBottom: 5,
+        width: 'auto',
+        fontSize: 16,
+        height: 40,
+        alignItems: "center", // Centra el texto horizontalmente
+        justifyContent: "center", // Centra el texto verticalmente
+    },
+    selectButtonHome: {
+        borderWidth: 1,
+        backgroundColor: "#f01250",
+        color: '#ffffff',
+        borderColor: 'gray',
+        padding: 10,
+        borderRadius: 0,
+        marginBottom: 0,
+        width: 'auto',
+        fontSize: 16,
+        height: 40,
+        alignItems: "center", // Centra el texto horizontalmente
+        justifyContent: "center", // Centra el texto verticalmente
+    },
+    fixedButton: {
+        position: "absolute", // Fija el botón
+        bottom: 20, // Espaciado desde la parte inferior
+        left: 35, // Espaciado desde la izquierda
+        right: 35, // Espaciado desde la derecha
+        padding: 15, // Espaciado interno
+        borderRadius: 30, // Bordes redondeados
+        alignItems: "center", // Centra el texto horizontalmente
+    },
+    item: {
+        flexDirection: 'row',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderColor: '#452790',
+    },
+
+
+    rojo: {
+        color: "#f01250"
+    },
+
+    violeta: {
+        color: "#a31288"
+    },
+    celeste: {
+        color: "#018cae"
+    },
+    verde: {
+        color: "#28cf54"
+    },
+    amarillo: {
+        color: "#f7a423"
+    },
+    azulado: {
+        color: "#452790"
+    },
+    blanco: {
+        color: "#ffffff"
+    },
+    rojoBg: {
+        backgroundColor: "#f01250"
+    },
+
+    violetaBg: {
+        backgroundColor: "#a31288"
+    },
+    celesteBg: {
+        backgroundColor: "#018cae"
+    },
+    verdeBg: {
+        backgroundColor: "#28cf54"
+    },
+    amarilloBg: {
+        backgroundColor: "#f7a423"
+    },
+    azuladoBg: {
+        backgroundColor: "#452790"
+    },
+    blancoBg: {
+        backgroundColor: "#ffffff"
+    },
 });

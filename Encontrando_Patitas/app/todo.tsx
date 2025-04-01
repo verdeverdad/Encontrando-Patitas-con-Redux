@@ -11,7 +11,7 @@ const Todo = () => {
   return (
     <View style={styles.container}>
       {todo && <Text style={styles.text}>ID: {todo.id}</Text>}
-      {todo && <Text style={styles.text}>Text: {todo.text}</Text>}
+      {todo && <Text style={styles.text}>Text: {todo.titulo}</Text>}
     </View>
   );
 };

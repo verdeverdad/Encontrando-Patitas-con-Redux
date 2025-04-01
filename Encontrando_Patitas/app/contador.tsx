@@ -2,6 +2,7 @@ import { Text, View, StyleSheet, Button } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/redux/store";
 import { increment, decrement, incrementByAmount } from "@/redux/contadorSlice";
+import MascotasLista from "@/components/mascotas";
 
 export default function Contador() {
   const count = useSelector((state: RootState) => state.counter.value);
@@ -14,16 +15,10 @@ export default function Contador() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Contador: {count}</Text>
-      <View style={styles.row}>
-        <Button title="-" onPress={() => dispatch(decrement())} />
-        <Button title="+" onPress={() => dispatch(increment())} />
-      </View>
-      <Button
-        title="Incrementar en 5"
-        onPress={() => dispatch(incrementByAmount(5))}
-      />
-      <Text>Cantidad de Todos {todos.length}</Text>
+      
+      
+        <MascotasLista></MascotasLista>
+      
     </View>
   );
 }

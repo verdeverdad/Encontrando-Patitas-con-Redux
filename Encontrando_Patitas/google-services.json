@@ -1,0 +1,31 @@
+{
+  "project_info": {
+    "project_number": "705950686931",
+    "firebase_url": "https://encontrando-patitas-default-rtdb.firebaseio.com",
+    "project_id": "encontrando-patitas",
+    "storage_bucket": "encontrando-patitas.firebasestorage.app"
+  },
+  
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:705950686931:android:c8a80807c0501713f3be26",
+        "android_client_info": {
+          "package_name": "ep.ep.e_p2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZU-txbm-BDpiputiZKiteLVQwn4yIRPY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

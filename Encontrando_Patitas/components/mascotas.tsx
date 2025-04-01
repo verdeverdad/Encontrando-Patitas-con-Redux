@@ -48,7 +48,8 @@ const sampleData = [
     },
 
 ];
-export default function EnAdopcion() {
+
+const MascotasLista = () => {
     const [mascotas, setMascotas] = useState<{ id: string; titulo?: string; estado?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -95,13 +96,13 @@ export default function EnAdopcion() {
 
                             <View style={styles.details}>
                                 <Text style={styles.titulo}>{item.titulo}</Text>
-                                <Text style={styles.edad}><Text style={{ fontWeight: 'bold' }}>Edad: </Text>{item.edad}</Text>
-                                <Text style={styles.sexo}><Text style={{ fontWeight: 'bold' }}>Sexo: </Text>{item.sexo}</Text>
-                                <Text style={styles.localidad}><Text style={{ fontWeight: 'bold' }}>Localidad: </Text>{item.localidad}</Text>
-                                <Text style={styles.localidad}><Text style={{ fontWeight: 'bold' }}>Traslado: </Text>{item.traslado}</Text>
-                                <Text style={styles.estado}><Text style={{ fontWeight: 'bold' }}>Estado: </Text>{item.estado?.toLocaleUpperCase()}</Text>
+                                <Text style={styles.edad}>Edad: {item.edad}</Text>
+                                <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
+                                <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
+                                <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                                <Text style={styles.estado}>Estado: {item.estado?.toLocaleUpperCase()}</Text>
                                 <Text> mas info...</Text>
-                                <TouchableOpacity style={[styles.selectButton, styles.celesteBg,]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
+                                <TouchableOpacity style={[styles.selectButton, styles.celesteBg]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
                                     <Text style={styles.blanco}>CONTACTAR</Text>
                                 </TouchableOpacity>
                             </View>
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     sexo: { fontSize: 14, color: "gray" },
     localidad: { fontSize: 14, color: "gray" },
     estado: { fontSize: 18, color: "gray", fontWeight: "bold" },
-    image: { width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10 },
+    image: { width: 180, height: 220, marginBottom: 10, backgroundColor: "gray" },
     picker: { height: 80, width: "100%", },
     input2: {
         height: 40,
@@ -206,7 +207,6 @@ const styles = StyleSheet.create({
         alignItems: "center", // Centra el texto horizontalmente
     },
     item: {
-      flexDirection: "row",
         padding: 10,
         borderBottomWidth: 1,
         borderColor: '#452790',
@@ -259,3 +259,4 @@ const styles = StyleSheet.create({
     },
 });
 
+export default MascotasLista;
