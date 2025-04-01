@@ -269,7 +269,8 @@ const styles = StyleSheet.create({
     sexo: { fontSize: 14, color: "gray" },
     localidad: { fontSize: 14, color: "gray" },
     estado: { fontSize: 18, color: "gray", fontWeight: "bold" },
-    image: { width: 180, height: 220, marginBottom: 10, backgroundColor: "gray" },
+    image: { width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
+    },
     picker: { height: 80, width: "100%", },
     input2: {
         height: 40,
@@ -302,9 +303,11 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         backgroundColor: "#f01250",
         color: '#ffffff',
-        borderColor: 'black',
+        borderColor: 'white',
         padding: 10,
         borderRadius: 10,
+        boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+
         marginBottom: 30,
         width: 'auto',
         fontSize: 16,
@@ -316,9 +319,11 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         backgroundColor: "#f01250",
         color: '#ffffff',
-        borderColor: 'black',
-        borderRadius: 10,
-        marginBottom: 5,
+        borderColor: 'white',
+        borderRadius: 20,
+        marginBottom: 10,
+        boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+
         width: 'auto',
         fontSize: 16,
         height: 40,
@@ -353,6 +358,8 @@ const styles = StyleSheet.create({
         padding: 10,
         borderBottomWidth: 1,
         borderColor: '#452790',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
+
     },
 
 

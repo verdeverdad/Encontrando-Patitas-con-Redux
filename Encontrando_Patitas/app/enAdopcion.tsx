@@ -117,16 +117,17 @@ export default function EnAdopcion() {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    container: { flex: 1 },
+    container: { flex: 1, },
     inputContainer: { flexDirection: "row", padding: 10 },
     input: { marginTop: 10, padding: 10, borderColor: "gray", borderWidth: 1 },
-    details: { flex: 1, margin: 15 },
+    details: { flex: 1, margin: 15,  },
     titulo: { fontSize: 18, fontWeight: "bold" },
     edad: { fontSize: 14, color: "gray" },
     sexo: { fontSize: 14, color: "gray" },
     localidad: { fontSize: 14, color: "gray" },
     estado: { fontSize: 18, color: "gray", fontWeight: "bold" },
-    image: { width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10 },
+    image: { width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+ },
     picker: { height: 80, width: "100%", },
     input2: {
         height: 40,
@@ -165,6 +166,8 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         width: 'auto',
         fontSize: 16,
+        boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+
         height: 60,
         alignItems: "center", // Centra el texto horizontalmente
         justifyContent: "center", // Centra el texto verticalmente
@@ -173,7 +176,8 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         backgroundColor: "#f01250",
         color: '#ffffff',
-        borderColor: 'black',
+        boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+        borderColor: 'white',
         borderRadius: 10,
         marginBottom: 5,
         width: 'auto',
