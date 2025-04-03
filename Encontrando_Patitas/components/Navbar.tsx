@@ -13,7 +13,7 @@ export default function Navbar() {
               <Text style={styles.texto}>PERDIDOS</Text>
             </TouchableOpacity>
           </Link>
-          <Link href="/contador" asChild>
+          <Link href="/encontrados" asChild>
             <TouchableOpacity style={styles.texto}>
               <Text style={styles.texto}>ENCONTRADOS</Text>
             </TouchableOpacity>

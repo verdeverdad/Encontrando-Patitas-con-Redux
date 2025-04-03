@@ -4,6 +4,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator } from "react-native";
+import TabsFalsas from "@/components/tabs";
 
 const sampleData = [
 
@@ -73,13 +75,14 @@ export default function EnAdopcion() {
         cargarMascotas();
     }, []);
 
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <Text>Cargando mascotas...</Text>
-            </View>
-        );
-    }
+     if (loading) {
+            return (
+                <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                  <ActivityIndicator size="large" color="#018cae" />
+                    <Text style={{color: "#018cae", fontSize: 24, fontWeight: 'bold'}}>Cargando mascotas...</Text>
+                </View>
+            );
+        }
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -111,6 +114,7 @@ export default function EnAdopcion() {
                     )}
                 />
             </View>
+            <TabsFalsas></TabsFalsas>
         </SafeAreaView>
     );
 };

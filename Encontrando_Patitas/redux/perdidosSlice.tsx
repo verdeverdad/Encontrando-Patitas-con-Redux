@@ -30,7 +30,7 @@ const perdidosSlice = createSlice({
       const { id, newText } = action.payload;
       const todo = state.data.find((todo) => todo.id === id);
       if (todo) {
-        todo.text = newText;
+        todo.titulo = newText;
       }
     },
     deletePerdidos: (state, action) => {

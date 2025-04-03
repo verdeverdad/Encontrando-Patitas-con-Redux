@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig"
 import MascotasLista from "@/components/mascotas";
+import TabsFalsas from "@/components/tabs";
 
 
 const sampleData = [
@@ -68,6 +69,7 @@ type Todo = {
     localidad?: string;
     traslado?: string;
     image?: string;
+    valor?: string;
 };
 
 export default function PerdidosPantalla() {
@@ -82,7 +84,7 @@ export default function PerdidosPantalla() {
     const [mascotaImage, setMascotaImage] = useState<string | null>(null);
     const [image, setImage] = useState("");
     const [loading, setLoading] = useState(true); // Indicador de carga
-    const [selectedValue, setSelectedValue] = useState("perdido"); // Estado inicial del Picker
+    const [valor, setValor] = useState(""); // Estado inicial del Picker
     const [modalVisible, setModalVisible] = useState(false); // Estado para controlar el modal
     const loadData = async () => {
         setLoading(true);
@@ -127,7 +129,8 @@ export default function PerdidosPantalla() {
             localidad.trim() &&
             traslado.trim() &&
             estado.trim() &&
-            image.trim()
+            image.trim() &&
+            valor.trim()
         ) {
             const newTodo: Todo = {
                 titulo: input,
@@ -137,6 +140,7 @@ export default function PerdidosPantalla() {
                 traslado,
                 estado,
                 image,
+                valor,
             };
             try {
                 await addDoc(collection(db, "perdidos"), newTodo);
@@ -150,6 +154,7 @@ export default function PerdidosPantalla() {
             setSexo("");
             setLocalidad("");
             setTraslado("");
+            setValor("")
             setEstado("");
             setImage("");
             setMascotaImage(null);
@@ -162,7 +167,8 @@ export default function PerdidosPantalla() {
     if (loading) {
         return (
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" />
+                <ActivityIndicator size="large" color="#018cae" />
+                <Text style={{ color: "#018cae", fontSize: 24, fontWeight: 'bold' }}>Cargando mascotas...</Text>
             </View>
         );
     }
@@ -175,42 +181,43 @@ export default function PerdidosPantalla() {
             <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
                 <View style={[styles.modalContent, styles.modalContainer]}>
                     <ScrollView>
-                        <Pressable onPress={() => setModalVisible(false)}>
+                        <Pressable onPress={() => setModalVisible(false)} >
                             <MaterialIcons name="close" color="red" size={22} />
                         </Pressable>
                         <Text style={styles.titulo}>PUBLICAR UNA MASCOTA</Text>
                         <TextInput style={styles.input} placeholder="Ingrese un titulo a la publicacion" value={input} onChangeText={setInput} />
-                        <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
-                        <TextInput style={styles.input} placeholder="Ingrese sexo de la mascota" value={sexo} onChangeText={setSexo} />
-                        <TextInput style={styles.input} placeholder="Ingrese localidad" value={localidad} onChangeText={setLocalidad} />
-                        <TextInput style={styles.input} placeholder="Ingrese traslado" value={traslado} onChangeText={setTraslado} />
-                        <TextInput style={styles.input} placeholder="Ingrese estado de la mascota" value={estado} onChangeText={setEstado} />
-                        <TextInput style={styles.input} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
                         <Text style={styles.input2}>Selecciona un estado:</Text>
                         <Picker
-                            selectedValue={selectedValue}
-                            onValueChange={(itemValue) => setSelectedValue(itemValue)}
+                            selectedValue={valor}
+                            onValueChange={(itemValue) => setValor(itemValue)}
                             style={styles.picker}
-                        >
-                            <Picker.Item label="PERDIDO/A" value="perdido" />
-                            <Picker.Item label="ENCONTRADO/A" value="encontrado" />
-                            <Picker.Item label="EN ADOPCIÓN" value="enAdopcion" />
+                        > 
+                            <Picker.Item label="PERDIDO/A" value="PERDIDO" />
+                            <Picker.Item label="ENCONTRADO/A" value="ENCONTRADO/A" />
+                            <Picker.Item label="EN ADOPCIÓN" value="EN ADOPCIÓN" />
                         </Picker>
-                        <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-                            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.selectButton, styles.rojoBg]} onPress={handleAddPerdidos}>
-                            <Text style={styles.blanco}>PUBLICAR MASCOTA</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.selectButton, styles.azuladoBg]} onPress={() => setModalVisible(false)}>
-                            <Text style={[styles.blanco,]}>CERRAR</Text>
-                        </TouchableOpacity>
+                        <TextInput style={styles.input} placeholder="Ingrese localidad" value={localidad} onChangeText={setLocalidad} />
+                        <TextInput style={styles.input} placeholder="Ingrese sexo de la mascota" value={sexo} onChangeText={setSexo} />
+                        <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
+                        <TextInput style={styles.input} placeholder="Ingrese si cuenta contraslado" value={traslado} onChangeText={setTraslado} />
+                        <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
+                        <View style={{margin: 10}}>
+                            <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+                                <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.selectButton, styles.rojoBg]} onPress={handleAddPerdidos}>
+                                <Text style={styles.blanco}>PUBLICAR MASCOTA</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.selectButton, styles.azuladoBg]} onPress={() => setModalVisible(false)}>
+                                <Text style={[styles.blanco,]}>CERRAR</Text>
+                            </TouchableOpacity>
+                        </View>
                         {mascotaImage && <Image source={{ uri: mascotaImage }} style={styles.image} />}
                     </ScrollView>
                 </View>
             </Modal>
 
-
+            {/*LISTA DE MASCOTAS */}
             <View style={styles.container}>
                 <FlatList
                     data={todos}
@@ -220,12 +227,12 @@ export default function PerdidosPantalla() {
                             <Image source={{ uri: item.image }} style={styles.image} />
                             <View style={styles.details}>
                                 <Text style={styles.titulo}>{item.titulo}</Text>
-                                <Text style={styles.edad}>Edad: {item.edad}</Text>
+                                <Text style={styles.estado}>Estado: {item.valor}</Text>
                                 <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
                                 <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
+                                <Text style={styles.edad}>Edad: {item.edad}</Text>
                                 <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
-                                <Text style={styles.estado}>Estado: {item.estado?.toLocaleUpperCase()}</Text>
-                                <Text> mas info...</Text>
+                                <Text style={{fontSize:12, marginVertical:4}}> mas info...</Text>
                                 <TouchableOpacity style={[styles.selectButton, styles.celesteBg]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
                                     <Text style={styles.blanco}>CONTACTAR</Text>
                                 </TouchableOpacity>
@@ -235,10 +242,11 @@ export default function PerdidosPantalla() {
                         </View>
                     )}
                 />
-                
-            </View>
-            {/* Botón para abrir el modal */}
 
+            </View>
+
+
+            {/* Botón para abrir el modal */}
             {
                 !modalVisible && ( // Renderiza el botón solo si modalVisible es falso
                     <TouchableOpacity style={[styles.selectButtonModal, styles.fixedButton]} onPress={() => setModalVisible(true)}>
@@ -246,21 +254,15 @@ export default function PerdidosPantalla() {
                     </TouchableOpacity>
                 )
             }
-            <View >
-                <TouchableOpacity style={[styles.selectButtonHome, styles.azuladoBg]} onPress={() => router.push('/')} >
-                    <Text style={styles.blanco}>VOLVER AL INICIO</Text>
-                </TouchableOpacity>
-                
+            <TabsFalsas></TabsFalsas>
 
-            </View>
-            
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    container: { flex: 1 },
+    container: { flex: 1, },
     inputContainer: { flexDirection: "row", padding: 10 },
     input: { marginTop: 10, padding: 10, borderColor: "gray", borderWidth: 1 },
     details: { flex: 1, margin: 15 },
@@ -268,10 +270,11 @@ const styles = StyleSheet.create({
     edad: { fontSize: 14, color: "gray" },
     sexo: { fontSize: 14, color: "gray" },
     localidad: { fontSize: 14, color: "gray" },
-    estado: { fontSize: 18, color: "gray", fontWeight: "bold" },
-    image: { width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
+    estado: { fontSize: 16, color: "black", fontWeight: "bold" },
+    image: {
+        width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
     },
-    picker: { height: 80, width: "100%", },
+    picker: { height: 60, width: "100%", marginTop: 0 },
     input2: {
         height: 40,
         margin: 5,
@@ -279,12 +282,12 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         padding: 20,
-        flexDirection: 'row'
+        flexDirection: 'row',
+
     },
 
     modalBackground: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -301,7 +304,7 @@ const styles = StyleSheet.create({
     },
     selectButtonModal: {
         borderWidth: 2,
-        backgroundColor: "#f01250",
+        backgroundColor: "#452790",
         color: '#ffffff',
         borderColor: 'white',
         padding: 10,
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
     },
     fixedButton: {
         position: "absolute", // Fija el botón
-        bottom: 20, // Espaciado desde la parte inferior
+        bottom: 30, // Espaciado desde la parte inferior
         left: 35, // Espaciado desde la izquierda
         right: 35, // Espaciado desde la derecha
         padding: 15, // Espaciado interno

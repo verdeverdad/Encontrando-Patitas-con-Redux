@@ -13,12 +13,18 @@ export default function Contador() {
   // console.log(increment());
   // console.log(incrementByAmount(5));
 
-  return (
-    <View style={styles.container}>
-      
-      
-        <MascotasLista></MascotasLista>
-      
+  return (<View style={styles.container}>
+      <Text style={styles.text}>Contador: {count}</Text>
+      <View style={styles.row}>
+        <Button title="-" onPress={() => dispatch(decrement())} />
+        <Button title="+" onPress={() => dispatch(increment())} />
+      </View>
+      <Button
+        title="Incrementar en 5"
+        onPress={() => dispatch(incrementByAmount(5))}
+      />
+      <Text>Cantidad de Todos {todos.length}</Text>
+      <MascotasLista></MascotasLista>
     </View>
   );
 }
