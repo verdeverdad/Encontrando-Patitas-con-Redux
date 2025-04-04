@@ -1,116 +1,92 @@
-import TabsFalsas from '@/components/tabs';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+import { useSelector, useDispatch } from "react-redux";
+import { setPerfil } from "@/redux/perfilSlice"; // Importa tu acción para actualizar el perfil
+import TabsFalsas from "@/components/tabs";
 
-const ProfilePage = () => {
-    // Datos de ejemplo del perfil (puedes reemplazar con datos reales)
-    const [profile, setProfile] = useState({
-        name: 'John Doe',
-        username: 'johndoe123',
-        bio: 'Desarrollador de software y amante de los animales.',
-        profileImage: '/assets/images/animals/30.png', // Reemplaza con la URL de la imagen del perfil
-        followers: 123,
-        following: 456,
-        posts: 1,
-    });
+const Perfil = () => {
+    const dispatch = useDispatch();
+    const perfil = useSelector((state: any) => state.perfil.data);
+    const [nombre, setNombre] = useState("");
+    const [correo, setCorreo] = useState("");
+    const [modoEdicion, setModoEdicion] = useState(false);
+    const [esNuevoUsuario, setEsNuevoUsuario] = useState(true); // Asume que es un nuevo usuario al principio
 
-    return (<>
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <Image source={require('@/assets/images/animals/29.png')} style={styles.profileImage} />
-                <View style={styles.userInfo}>
-                    <Text style={styles.name}>{profile.name}</Text>
-                    <Text style={styles.username}>@{profile.username}</Text>
-                    <Text style={styles.bio}>{profile.bio}</Text>
-                </View>
+    useEffect(() => {
+        // Si hay un perfil existente, carga los datos y establece esNuevoUsuario en falso
+        if (perfil) {
+            setNombre(perfil.nombre);
+            setCorreo(perfil.correo);
+            setEsNuevoUsuario(false);
+        }
+    }, [perfil]);
+
+    const handleGuardarPerfil = () => {
+        // Actualiza el perfil en Redux o en tu backend
+        const nuevoPerfil = { nombre, correo };
+        dispatch(setPerfil(nuevoPerfil));
+        setModoEdicion(false);
+    };
+
+    const handleRegistrarPerfil = () => {
+        // Crea un nuevo perfil en Redux o en tu backend
+        const nuevoPerfil = { nombre, correo };
+        dispatch(setPerfil(nuevoPerfil));
+        setEsNuevoUsuario(false);
+    };
+
+    if (esNuevoUsuario) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.titulo}>Registro de Perfil</Text>
+                <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+                <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+                <Button title="Registrar" onPress={handleRegistrarPerfil} />
+                <TabsFalsas></TabsFalsas>
             </View>
+        );
+    }
 
-            <View style={styles.stats}>
-                <View style={styles.stat}>
-                    <Text style={styles.statNumber}>{profile.followers}</Text>
-                    <Text style={styles.statLabel}>Seguidores</Text>
-                </View>
-                <View style={styles.stat}>
-                    <Text style={styles.statNumber}>{profile.following}</Text>
-                    <Text style={styles.statLabel}>Siguiendo</Text>
-                </View>
-                <View style={styles.stat}>
-                    <Text style={styles.statNumber}>{profile.posts}</Text>
-                    <Text style={styles.statLabel}>Publicaciones</Text>
-                </View>
-            </View>
-
-            <TouchableOpacity style={styles.editProfileButton}>
-                <Text style={styles.editProfileButtonText}>Editar Perfil</Text>
-            </TouchableOpacity>
-
-            {/* Puedes agregar aquí más componentes para mostrar las publicaciones del usuario, etc. */}
-        </ScrollView>
-        <TabsFalsas></TabsFalsas>
-        </>
+    return (
+        <View style={styles.container}>
+            {modoEdicion ? (
+                <>
+                    <Text style={styles.titulo}>Editar Perfil</Text>
+                    <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+                    <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+                    <Button title="Guardar" onPress={handleGuardarPerfil} />
+                    <Button title="Cancelar" onPress={() => setModoEdicion(false)} />
+                </>
+            ) : (
+                <>
+                    <Text style={styles.titulo}>Perfil</Text>
+                    <Text>Nombre: {nombre}</Text>
+                    <Text>Correo Electrónico: {correo}</Text>
+                    <Button title="Editar" onPress={() => setModoEdicion(true)} />
+                </>
+            )}
+            <TabsFalsas></TabsFalsas>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         padding: 20,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginRight: 20,
-    },
-    userInfo: {
-        flex: 1,
-    },
-    name: {
+    titulo: {
         fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    username: {
-        fontSize: 16,
-        color: 'gray',
-        marginBottom: 5,
-    },
-    bio: {
-        fontSize: 16,
-    },
-    stats: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+        fontWeight: "bold",
         marginBottom: 20,
     },
-    stat: {
-        alignItems: 'center',
-    },
-    statNumber: {
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    statLabel: {
-        fontSize: 16,
-        color: 'gray',
-    },
-    editProfileButton: {
-        backgroundColor: '#007bff',
-        padding: 15,
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-    editProfileButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+    input: {
+        height: 40,
+        borderColor: "gray",
+        borderWidth: 1,
+        marginBottom: 10,
+        paddingHorizontal: 10,
     },
 });
 
-export default ProfilePage;
+export default Perfil;

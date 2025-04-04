@@ -128,7 +128,6 @@ export default function PerdidosPantalla() {
             sexo.trim() &&
             localidad.trim() &&
             traslado.trim() &&
-            estado.trim() &&
             image.trim() &&
             valor.trim()
         ) {
@@ -138,7 +137,6 @@ export default function PerdidosPantalla() {
                 sexo,
                 localidad,
                 traslado,
-                estado,
                 image,
                 valor,
             };
@@ -155,7 +153,6 @@ export default function PerdidosPantalla() {
             setLocalidad("");
             setTraslado("");
             setValor("")
-            setEstado("");
             setImage("");
             setMascotaImage(null);
             setModalVisible(false);

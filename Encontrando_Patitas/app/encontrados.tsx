@@ -53,7 +53,7 @@ const sampleData = [
 
 ];
 export default function Encontrados() {
-  const [mascotas, setMascotas] = useState<{ id: string; titulo?: string; estado?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string }[]>([]);
+  const [mascotas, setMascotas] = useState<{ id: string; titulo?: string; valor?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const isSelected = useIsFocused();
 
@@ -101,13 +101,13 @@ export default function Encontrados() {
 
               <View style={styles.details}>
                 <Text style={styles.titulo}>{item.titulo}</Text>
-                <Text style={styles.edad}><Text style={{ fontWeight: 'bold' }}>Edad: </Text>{item.edad}</Text>
-                <Text style={styles.sexo}><Text style={{ fontWeight: 'bold' }}>Sexo: </Text>{item.sexo}</Text>
-                <Text style={styles.localidad}><Text style={{ fontWeight: 'bold' }}>Localidad: </Text>{item.localidad}</Text>
-                <Text style={styles.localidad}><Text style={{ fontWeight: 'bold' }}>Traslado: </Text>{item.traslado}</Text>
-                <Text style={styles.estado}><Text style={{ fontWeight: 'bold' }}>Estado: </Text>{item.estado?.toLocaleUpperCase()}</Text>
-                <Text> mas info...</Text>
-                <TouchableOpacity style={[styles.selectButton, styles.celesteBg,]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
+                <Text style={styles.estado}>Estado: {item.valor}</Text>
+                <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
+                <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
+                <Text style={styles.edad}>Edad: {item.edad}</Text>
+                <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
+                <TouchableOpacity style={[styles.selectButton, styles.celesteBg]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
                   <Text style={styles.blanco}>CONTACTAR</Text>
                 </TouchableOpacity>
               </View>
