@@ -82,7 +82,7 @@ export default function Encontrados() {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#018cae" />
-        <Text style={{ color: "#018cae", fontSize: 24, fontWeight: 'bold' }}>Cargando mascotas...</Text>
+        <Text style={{ color: "#018cae", fontSize: 24, fontWeight: 'bold', marginTop: 15  }}>Cargando mascotas...</Text>
       </View>
     );
   }
