@@ -17,7 +17,7 @@ const perfilSlice = createSlice({
   name: "perfil",
   initialState,
   reducers: {
-    setPerfil: (state, action: PayloadAction<{ nombre: string; correo: string; telefono: string }>) => {
+    setPerfil: (state, action: PayloadAction<{ nombre: string; correo: string; telefono: string; image: string }>) => {
       state.data = action.payload;
     },
     clearPerfil: (state) => {

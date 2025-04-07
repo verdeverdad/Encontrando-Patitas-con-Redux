@@ -10,6 +10,8 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import TabsFalsas from "@/components/tabs";
+import storage from '@react-native-firebase/storage'; // Importa Firebase Storage
+
 
 const Perfil = () => {
   const dispatch = useDispatch();
@@ -22,12 +24,27 @@ const Perfil = () => {
   const [perfilImage, setPerfilImage] = useState<string | null>(null);
   const [image, setImage] = useState("");
   const [usuarioLogeado, setUsuarioLogeado] = useState(!!auth.currentUser); // Verifica si hay usuario logeado al inicio
-  const [mostrarInicioSesion, setMostrarInicioSesion] = useState(false);
-  const [mostrarRegistro, setMostrarRegistro] = useState(false);
   const [modo, setModo] = useState<"inicioSesion" | "registro" | null>(null); // Estado para el modo
 
 
 
+  
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUsuarioLogeado(!!user);
+    });
+    return unsubscribe;
+  }, []);
+  
+  useEffect(() => {
+    if (perfil) {
+      console.log("Actualizando estado local con datos del perfil:", perfil); // Depuración
+      setNombre(perfil.nombre);
+      setCorreo(perfil.correo);
+      setPerfilImage(perfil.image);
+      setEsNuevoUsuario(false);
+    }
+  }, [perfil]);
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -42,25 +59,9 @@ const Perfil = () => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-        setUsuarioLogeado(!!user);
-    });
-    return unsubscribe;
-}, []);
-
-  useEffect(() => {
-    if (perfil) {
-      setNombre(perfil.nombre);
-      setCorreo(perfil.correo);
-      setPerfilImage(perfil.image);
-      setEsNuevoUsuario(false);
-    }
-  }, [perfil]);
-
   const handleRegistrar = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, correo, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, correo, password,);
       const user = userCredential.user;
 
       // Datos del perfil
@@ -81,29 +82,26 @@ const Perfil = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, correo, password);
       const user = userCredential.user;
-
+  
       // Obtén los datos del usuario desde Firestore
-      const docRef = doc(db, "users", user.uid);
+      const docRef = doc(db, "usuarios", user.uid);
       const docSnap = await getDoc(docRef);
-
+  
       if (docSnap.exists()) {
         const perfilData = docSnap.data();
-        if (perfilData && perfilData.nombre && perfilData.correo && perfilData.telefono && perfilData.image) {
+        console.log("Datos del perfil cargados desde Firestore:", perfilData); // Depuración
+        if (perfilData && perfilData.nombre && perfilData.image) {
           dispatch(setPerfil(perfilData as { nombre: string; correo: string; telefono: string; image: string }));
         } else {
           console.error("Los datos del perfil no tienen el formato esperado:", perfilData);
         }
-        console.log("Usuario autenticado y datos cargados desde Firestore:", perfilData);
       } else {
         console.warn("No se encontraron datos para este usuario en Firestore.");
       }
-
-      setEsNuevoUsuario(false);
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
     }
   };
-
   const handleCerrarSesion = async () => {
     try {
       await signOut(auth);
@@ -121,69 +119,113 @@ const Perfil = () => {
     }
   };
 
-  const handleGuardarPerfil = () => {
-    const nuevoPerfil = { nombre, correo, telefono: perfil?.telefono || "", image: perfilImage || "" };
-    dispatch(setPerfil(nuevoPerfil));
-    setModoEdicion(false);
+  const handleGuardarPerfil = async () => {
+    if (auth.currentUser) {
+      try {
+        const nuevoPerfil = {
+          nombre,
+          correo,
+          telefono: perfil?.telefono || "", // Mantén el teléfono si ya existe
+          image: perfilImage || image, // Usa la nueva imagen si se seleccionó, sino la anterior
+        };
+
+        // Actualiza el documento en Firestore
+        await setDoc(doc(db, "usuarios", auth.currentUser.uid), nuevoPerfil);
+
+        // Actualiza el estado en Redux
+        dispatch(setPerfil(nuevoPerfil));
+
+        setModoEdicion(false);
+        console.log("Perfil guardado en Firestore:", nuevoPerfil);
+        alert("Perfil guardado correctamente.");
+      } catch (error) {
+        console.error("Error al guardar el perfil en Firestore:", error);
+        alert("Error al guardar el perfil.");
+      }
+    } else {
+      console.warn("No hay usuario logeado para guardar el perfil.");
+      alert("No se puede guardar el perfil: usuario no logeado.");
+    }
   };
 
   if (!usuarioLogeado) {
     if (modo === "inicioSesion") {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.titulo}>Iniciar Sesión</Text>
-                <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-                <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-                <Button title="Iniciar Sesión" onPress={handleIniciarSesion} />
-                <Button title="Cancelar" onPress={() => setModo(null)} />
-                <TabsFalsas />
-            </View>
-        );
+      return (
+        <View style={styles.container}>
+          <Text style={styles.titulo}>Iniciar Sesión</Text>
+          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
+          <Button title="Iniciar Sesión" onPress={handleIniciarSesion} />
+          <Button title="Cancelar" onPress={() => setModo(null)} />
+          <TabsFalsas />
+        </View>
+      );
     } else if (modo === "registro") {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.titulo}>Registrarse</Text>
-                <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-                <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-                <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-                <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-                <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-                    <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-                </TouchableOpacity>
-                <Button title="Registrarse" onPress={handleRegistrar} />
-                <Button title="Cancelar" onPress={() => setModo(null)} />
-                {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
-                <TabsFalsas />
-            </View>
-        );
+      return (
+        <View style={styles.container}>
+          <Text style={styles.titulo}>Registrarse</Text>
+          <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
+          <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
+          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+          </TouchableOpacity>
+          <Button title="Registrarse" onPress={handleRegistrar} />
+          <Button title="Cancelar" onPress={() => setModo(null)} />
+          {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
+          <TabsFalsas />
+        </View>
+      );
     } else {
-        return (
-            <View style={styles.container}>
-                <Button title="Iniciar Sesión" onPress={() => setModo("inicioSesion")} />
-                <Button title="Registrarse" onPress={() => setModo("registro")} />
-                <TabsFalsas />
-            </View>
-        );
+      return (
+        <View style={styles.container}>
+          <Button title="Iniciar Sesión" onPress={() => setModo("inicioSesion")} />
+          <Button title="Registrarse" onPress={() => setModo("registro")} />
+          <TabsFalsas />
+        </View>
+      );
     }
-}
+  }
 
   if (esNuevoUsuario) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.titulo}>Registro o Inicio de Sesión</Text>
-        <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-        <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-        <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-        <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-        <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-          <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-        </TouchableOpacity>
-        <Button title="Registrar" onPress={handleRegistrar} />
-        <Button title="Iniciar Sesión" onPress={handleIniciarSesion} />
-        {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
-        <TabsFalsas></TabsFalsas>
-      </View>
-    );
+    if (modo === "inicioSesion") {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.titulo}>Iniciar Sesión</Text>
+          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
+          <Button title="Iniciar Sesión" onPress={handleIniciarSesion} />
+          <Button title="Cancelar" onPress={() => setModo(null)} />
+          <TabsFalsas />
+        </View>
+      );
+    } else if (modo === "registro") {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.titulo}>Registrarse</Text>
+          <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
+          <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
+          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+          </TouchableOpacity>
+          <Button title="Registrarse" onPress={handleRegistrar} />
+          <Button title="Cancelar" onPress={() => setModo(null)} />
+          {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
+          <TabsFalsas />
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.container}>
+          <Button title="Iniciar Sesión" onPress={() => setModo("inicioSesion")} />
+          <Button title="Registrarse" onPress={() => setModo("registro")} />
+          <TabsFalsas />
+        </View>
+      );
+    }
   }
 
   return (
@@ -202,15 +244,17 @@ const Perfil = () => {
           <TabsFalsas></TabsFalsas>
         </>
       ) : (
-        <>
-          <Image source={{ uri: image }} style={styles.image} />
-
-          <Text style={styles.titulo}>Perfil</Text>
-          <Text>Nombre: {nombre}</Text>
-          <Text>Correo Electrónico: {correo}</Text>
-          <Button title="Editar" onPress={() => setModoEdicion(true)} />
-          <Button title="Cerrar Sesión" onPress={handleCerrarSesion} />
-        </>
+        <View style={styles.container}>
+        <Image
+          source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
+          style={styles.image}
+        />
+        <Text style={styles.titulo}>Perfil</Text>
+        <Text>Nombre: {nombre || "No disponible"}</Text>
+        <Text>Correo Electrónico: {correo || "No disponible"}</Text>
+        <Button title="Editar" onPress={() => setModoEdicion(true)} />
+        <Button title="Cerrar Sesión" onPress={handleCerrarSesion} />
+      </View>
       )}
       <TabsFalsas></TabsFalsas>
     </View>
@@ -343,17 +387,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginBottom: 10,
-},
-authButtonText: {
-  backgroundColor: "#452790",
+  },
+  authButtonText: {
+    backgroundColor: "#452790",
 
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
-},
-authForm: {
+  },
+  authForm: {
     marginTop: 20,
-},
+  },
 
 
   rojo: {
