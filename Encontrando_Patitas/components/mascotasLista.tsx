@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
+import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { TouchableOpacity } from "react-native";
@@ -103,11 +103,12 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
 
     if (loading) {
         return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <Text>Cargando mascotas...</Text>
-            </View>
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" color="#018cae" />
+            <Text style={{ color: "#018cae", fontSize: 24, fontWeight: 'bold', marginTop: 15  }}>Cargando mascotas...</Text>
+          </View>
         );
-    }
+      }
 
     return (
         <SafeAreaView style={styles.safeArea}>
