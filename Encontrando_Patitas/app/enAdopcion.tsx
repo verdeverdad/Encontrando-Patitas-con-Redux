@@ -6,6 +6,7 @@ import { TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ActivityIndicator } from "react-native";
 import TabsFalsas from "@/components/tabs";
+import PublicarMascota from "@/components/publicarMascota";
 
 const sampleData = [
 
@@ -92,7 +93,7 @@ export default function EnAdopcion() {
         <FlatList
           data={mascotas}
           keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => ( 
             <View style={styles.item}>
               <Image source={{ uri: item.image }} style={styles.image} />
 
@@ -109,10 +110,11 @@ export default function EnAdopcion() {
                 </TouchableOpacity>
               </View>
 
-
+          
             </View>
           )}
-        />
+          />
+          <PublicarMascota></PublicarMascota>
       </View>
       <TabsFalsas></TabsFalsas>
     </SafeAreaView>

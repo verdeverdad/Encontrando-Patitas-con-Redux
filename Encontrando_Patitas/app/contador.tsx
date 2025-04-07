@@ -2,7 +2,7 @@ import { Text, View, StyleSheet, Button } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/redux/store";
 import { increment, decrement, incrementByAmount } from "@/redux/contadorSlice";
-import MascotasLista from "@/components/mascotas";
+import MascotasLista from "@/components/mascotasLista";
 
 export default function Contador() {
   const count = useSelector((state: RootState) => state.counter.value);

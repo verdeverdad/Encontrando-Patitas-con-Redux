@@ -1,60 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, Pressable } from "react-native";
+import { View, Text, TextInput, StyleSheet, SafeAreaView, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, Pressable } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { setPerdidos } from "@/redux/perdidosSlice";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig"
-import MascotasLista from "@/components/mascotasLista";
-import TabsFalsas from "@/components/tabs";
 
 
-const sampleData = [
-
-    {
-
-        id: "1",
-
-        titulo: "Dos perritos cachorros",
-
-        estado: "en adopcion",
-
-        sexo: "machos",
-
-        edad: 2,
-
-        localidad: "en tal lado",
-
-        traslado: "no",
-
-        image: "https://via.placeholder.com/150",
-
-    },
-
-    {
-
-        id: "2",
-
-        titulo: "Perro grande marron",
-
-        estado: "Perdido",
-
-        sexo: "machos",
-
-        edad: 2,
-
-        localidad: "en tal lado",
-
-        traslado: "no",
-
-        image: "https://via.placeholder.com/150",
-
-    },
-
-];
 interface RootState {
     todos: {
         data: Todo[];
@@ -72,7 +26,7 @@ type Todo = {
     valor?: string;
 };
 
-export default function PerdidosPantalla() {
+export default function PublicarMascota() {
     const dispatch = useDispatch();
     const todos = useSelector((state: RootState) => state.todos.data);
     const [input, setInput] = useState("");
@@ -85,6 +39,8 @@ export default function PerdidosPantalla() {
     const [loading, setLoading] = useState(true); // Indicador de carga
     const [valor, setValor] = useState(""); // Estado inicial del Picker
     const [modalVisible, setModalVisible] = useState(false); // Estado para controlar el modal
+
+
     const loadData = async () => {
         setLoading(true);
         try {
@@ -96,7 +52,7 @@ export default function PerdidosPantalla() {
             dispatch(setPerdidos(remoteData));
         } catch (error) {
             console.error("Error al cargar datos desde Firebase:", error);
-            dispatch(setPerdidos(sampleData)); // Carga sampleData en caso de error
+            alert("Error al cargar datos desde Firebase:");
         } finally {
             setLoading(false);
         }
@@ -160,14 +116,6 @@ export default function PerdidosPantalla() {
         }
     };
 
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" color="#018cae" />
-                <Text style={{ color: "#018cae", fontSize: 24, fontWeight: 'bold', marginTop: 15 }}>Cargando mascotas...</Text>
-            </View>
-        );
-    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -187,7 +135,7 @@ export default function PerdidosPantalla() {
                             selectedValue={valor}
                             onValueChange={(itemValue) => setValor(itemValue)}
                             style={styles.picker}
-                        > 
+                        >
                             <Picker.Item label="PERDIDO/A" value="PERDIDO" />
                             <Picker.Item label="ENCONTRADO/A" value="ENCONTRADO/A" />
                             <Picker.Item label="EN ADOPCIÓN" value="EN ADOPCIÓN" />
@@ -197,7 +145,7 @@ export default function PerdidosPantalla() {
                         <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
                         <TextInput style={styles.input} placeholder="Ingrese si cuenta contraslado" value={traslado} onChangeText={setTraslado} />
                         <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-                        <View style={{margin: 10}}>
+                        <View style={{ margin: 10 }}>
                             <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
                                 <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
                             </TouchableOpacity>
@@ -214,7 +162,7 @@ export default function PerdidosPantalla() {
             </Modal>
 
             {/*LISTA DE MASCOTAS */}
-            <View style={styles.container}>
+            {/* <View style={styles.container}>
                 <FlatList
                     data={todos}
                     keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
@@ -228,7 +176,7 @@ export default function PerdidosPantalla() {
                                 <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
                                 <Text style={styles.edad}>Edad: {item.edad}</Text>
                                 <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
-                                <Text style={{fontSize:12, marginVertical:4}}> mas info...</Text>
+                                <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
                                 <TouchableOpacity style={[styles.selectButton, styles.celesteBg]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
                                     <Text style={styles.blanco}>CONTACTAR</Text>
                                 </TouchableOpacity>
@@ -239,7 +187,7 @@ export default function PerdidosPantalla() {
                     )}
                 />
 
-            </View>
+            </View> */}
 
 
             {/* Botón para abrir el modal */}
@@ -250,8 +198,6 @@ export default function PerdidosPantalla() {
                     </TouchableOpacity>
                 )
             }
-            <TabsFalsas></TabsFalsas>
-
         </SafeAreaView>
     );
 }

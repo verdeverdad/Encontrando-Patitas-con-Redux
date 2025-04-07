@@ -1,10 +1,11 @@
 // firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 // Configuración de Firebase
 const firebaseConfig = {
-  apiKey: "1:705950686931:android:c8a80807c0501713f3be26",
+  apiKey: "AIzaSyCZU-txbm-BDpiputiZKiteLVQwn4yIRPY",
   authDomain: "encontrando-patitas.firebaseapp.com",
   projectId: "encontrando-patitas",
   storageBucket: "encontrando-patitas.appspot.com",
@@ -12,10 +13,14 @@ const firebaseConfig = {
   appId: "1:705950686931:web:c8a80807c0501713f3be26", 
 };
 
-// Inicializa la aplicación de Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializa Firestore
-export const db = getFirestore(app);
+const auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+const db = getFirestore(app);
+
+
+export { auth, db };
 
 console.log("Firebase inicializado correctamente.");
