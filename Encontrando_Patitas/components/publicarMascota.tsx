@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, StyleSheet, SafeAreaView, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, Pressable } from "react-native";
+import { View, Text, TextInput, StyleSheet, SafeAreaView, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, Pressable, Alert } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { setPerdidos } from "@/redux/perdidosSlice";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, getDocs, addDoc } from "firebase/firestore";
-import { db } from "@/firebaseConfig"
+import { auth, db } from "@/firebaseConfig"
+import { router } from "expo-router";
 
 
 interface RootState {
@@ -57,6 +58,8 @@ export default function PublicarMascota() {
             setLoading(false);
         }
     };
+
+    //seleccionar la imagen
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -72,9 +75,33 @@ export default function PublicarMascota() {
     };
 
     useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            console.log("Estado de autenticación cambiado:", user);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
         loadData();
     }, []);
 
+    // Verificar si el usuario está autenticado
+    const verificarAutenticacion = () => {
+        const user = auth.currentUser;
+        console.log("Usuario autenticado:", user); // Verifica si el usuario está autenticado
+        if (!user) {
+            Alert.alert(
+                "Inicia sesión o registrate",
+                "Debes iniciar sesión para publicar una mascota.",
+                [
+                    { text: "Cancelar", style: "cancel", },
+                    { text: "Iniciar sesión", onPress: () => router.push("/perfil") }, // Navega a la pantalla de inicio de sesión
+                ]
+            );
+            return false;
+        }
+        return true;
+    };
 
     const handleAddPerdidos = async () => {
         if (
@@ -161,43 +188,21 @@ export default function PublicarMascota() {
                 </View>
             </Modal>
 
-            {/*LISTA DE MASCOTAS */}
-            {/* <View style={styles.container}>
-                <FlatList
-                    data={todos}
-                    keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
-                    renderItem={({ item }) => (
-                        <View style={styles.item}>
-                            <Image source={{ uri: item.image }} style={styles.image} />
-                            <View style={styles.details}>
-                                <Text style={styles.titulo}>{item.titulo}</Text>
-                                <Text style={styles.estado}>Estado: {item.valor}</Text>
-                                <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
-                                <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
-                                <Text style={styles.edad}>Edad: {item.edad}</Text>
-                                <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
-                                <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
-                                <TouchableOpacity style={[styles.selectButton, styles.celesteBg]} onPress={() => { console.log('/app/(tabs)/index.tsx') }}>
-                                    <Text style={styles.blanco}>CONTACTAR</Text>
-                                </TouchableOpacity>
-                            </View>
+           {/* Botón para abrir el modal (con verificación de autenticación) */}
+           {!modalVisible && (
+                <TouchableOpacity
+                    style={[styles.selectButtonModal, styles.fixedButton]}
+                    onPress={() => {
+                        if (verificarAutenticacion()) {
+                            setModalVisible(true);
+                        }
+                    }}
+                >
+                    <Text style={styles.blanco}>PUBLICAR UNA MASCOTA</Text>
+                </TouchableOpacity>
+            )}
 
-
-                        </View>
-                    )}
-                />
-
-            </View> */}
-
-
-            {/* Botón para abrir el modal */}
-            {
-                !modalVisible && ( // Renderiza el botón solo si modalVisible es falso
-                    <TouchableOpacity style={[styles.selectButtonModal, styles.fixedButton]} onPress={() => setModalVisible(true)}>
-                        <Text style={styles.blanco}>PUBLICAR UNA MASCOTA</Text>
-                    </TouchableOpacity>
-                )
-            }
+            
         </SafeAreaView>
     );
 }
