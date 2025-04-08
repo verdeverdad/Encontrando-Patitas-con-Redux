@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image, ScrollView, FlatList } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { setPerfil, clearPerfil } from "@/redux/perfilSlice";
 import { auth } from "@/firebaseConfig";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { setDoc, doc, getDoc } from "firebase/firestore";
+import { setDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import TabsFalsas from "@/components/tabs";
 import storage from '@react-native-firebase/storage'; // Importa Firebase Storage
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 const Perfil = () => {
@@ -23,26 +24,62 @@ const Perfil = () => {
   const [esNuevoUsuario, setEsNuevoUsuario] = useState(true);
   const [perfilImage, setPerfilImage] = useState<string | null>(null);
   const [image, setImage] = useState("");
+  const [telefono, setTelefono] = useState("")
   const [usuarioLogeado, setUsuarioLogeado] = useState(!!auth.currentUser); // Verifica si hay usuario logeado al inicio
   const [modo, setModo] = useState<"inicioSesion" | "registro" | null>(null); // Estado para el modo
+  const [publicaciones, setPublicaciones] = useState<any[]>([]); // Estado para las publicaciones del usuario
 
+  useEffect(() => {
+    const cargarPublicacionesUsuario = async () => {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "usuarios", auth.currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
 
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const publicacionesIds = userData.publicaciones || [];
 
-  
+          // Cargar las publicaciones desde Firestore
+          const publicacionesPromises = publicacionesIds.map(async (id: string) => {
+            const docRef = doc(db, "perdidos", id);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              return { id, ...docSnap.data() };
+            } else {
+              console.warn(`La publicación con ID ${id} no existe.`);
+              return null; // O algún otro valor para indicar que no se encontró
+            }
+          });
+
+          const publicaciones = (await Promise.all(publicacionesPromises)).filter(p => p !== null);
+          console.log("Publicaciones del usuario:", publicaciones);
+          setPublicaciones(publicaciones); // Actualiza el estado local con las publicaciones
+        } else {
+          console.warn("No se encontró el perfil del usuario en Firestore.");
+        }
+      }
+    };
+
+    cargarPublicacionesUsuario();
+  }, [auth.currentUser]);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUsuarioLogeado(!!user);
     });
     return unsubscribe;
   }, []);
-  
+
   useEffect(() => {
     if (perfil) {
       console.log("Actualizando estado local con datos del perfil:", perfil); // Depuración
       setNombre(perfil.nombre);
       setCorreo(perfil.correo);
       setPerfilImage(perfil.image);
+      setTelefono(perfil.telefono)
       setEsNuevoUsuario(false);
+      setPublicaciones(perfil.publicaciones || []); // Asegúrate de cargar las publicaciones si existen
+      setTelefono(perfil.telefono || ""); // Asegúrate de cargar el teléfono si existe
     }
   }, [perfil]);
   const pickImage = async () => {
@@ -82,16 +119,17 @@ const Perfil = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, correo, password);
       const user = userCredential.user;
-  
+
       // Obtén los datos del usuario desde Firestore
       const docRef = doc(db, "usuarios", user.uid);
       const docSnap = await getDoc(docRef);
-  
+
       if (docSnap.exists()) {
         const perfilData = docSnap.data();
         console.log("Datos del perfil cargados desde Firestore:", perfilData); // Depuración
         if (perfilData && perfilData.nombre && perfilData.image) {
           dispatch(setPerfil(perfilData as { nombre: string; correo: string; telefono: string; image: string }));
+          setTelefono(perfilData.telefono || ""); // Carga el teléfono al iniciar sesión
         } else {
           console.error("Los datos del perfil no tienen el formato esperado:", perfilData);
         }
@@ -125,12 +163,12 @@ const Perfil = () => {
         const nuevoPerfil = {
           nombre,
           correo,
-          telefono: perfil?.telefono || "", // Mantén el teléfono si ya existe
-          image: perfilImage || image, // Usa la nueva imagen si se seleccionó, sino la anterior
+          telefono, // Usa el estado local 'telefono'
+          image: perfilImage || image,
         };
 
         // Actualiza el documento en Firestore
-        await setDoc(doc(db, "usuarios", auth.currentUser.uid), nuevoPerfil);
+        await updateDoc(doc(db, "usuarios", auth.currentUser.uid), nuevoPerfil);
 
         // Actualiza el estado en Redux
         dispatch(setPerfil(nuevoPerfil));
@@ -166,6 +204,7 @@ const Perfil = () => {
           <Text style={styles.titulo}>Registrarse</Text>
           <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
           <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+          <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
           <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
           <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
           <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
@@ -206,6 +245,7 @@ const Perfil = () => {
           <Text style={styles.titulo}>Registrarse</Text>
           <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
           <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+          <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
           <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
           <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
           <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
@@ -228,48 +268,114 @@ const Perfil = () => {
     }
   }
 
-  return (
-    <View style={styles.container}>
-      {modoEdicion ? (
-        <>
-          <Text style={styles.titulo}>Editar Perfil</Text>
-          <Image source={{ uri: image }} style={styles.image} />
-          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-          </TouchableOpacity>
-          <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-          <Button title="Guardar" onPress={handleGuardarPerfil} />
-          <Button title="Cancelar" onPress={() => setModoEdicion(false)} />
-          <TabsFalsas></TabsFalsas>
-        </>
-      ) : (
-        <View style={styles.container}>
-        <Image
-          source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
-          style={styles.image}
-        />
-        <Text style={styles.titulo}>Perfil</Text>
-        <Text>Nombre: {nombre || "No disponible"}</Text>
-        <Text>Correo Electrónico: {correo || "No disponible"}</Text>
+  // --- Componente para la cabecera de la FlatList ---
+  const renderListHeader = () => (
+    <> {/* Usamos un Fragment para agrupar elementos sin añadir un View extra */}
+      <Image
+        source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
+        style={styles.image} // Asegúrate que este estilo funcione bien aquí
+      />
+      <Text style={styles.titulo}>{nombre || "No disponible"}</Text>
+      <Text style={styles.edad}>Correo Electrónico: {correo || "No disponible"}</Text>
+      <Text style={styles.edad}>Telefono: {telefono || "No disponible"}</Text>
+      {/* Mueve los botones aquí si los quieres *antes* de la lista */}
+      {/* <Button title="Editar" onPress={() => setModoEdicion(true)} /> */}
+      {/* <Button title="Cerrar Sesión" onPress={handleCerrarSesion} /> */}
+      <Text style={styles.titulo}>Mis Publicaciones</Text>
+    </>
+  );
+
+  // --- Componente para el pie de la FlatList ---
+  const renderListFooter = () => (
+    <>
+      {/* Mueve los botones aquí si los quieres *después* de la lista */}
+      <View style={styles.buttonContainer}> {/* Contenedor opcional para estilos */}
         <Button title="Editar" onPress={() => setModoEdicion(true)} />
         <Button title="Cerrar Sesión" onPress={handleCerrarSesion} />
       </View>
-      )}
+    </>
+  );
+
+  // --- Componente para cuando la lista está vacía ---
+  const renderEmptyList = () => (
+    <Text style={{ textAlign: "center", marginTop: 20 }}>No has creado publicaciones aún.</Text>
+  );
+
+  return (
+    <View style={styles.container}>
+      {modoEdicion ? (
+        <SafeAreaView style={styles.container}>
+          <ScrollView>
+            <Text style={styles.titulo}>Editar Perfil</Text>
+            <Image
+              source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
+              style={styles.image}
+            />          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+              <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+            </TouchableOpacity>
+            <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+            <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+            <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
+            <Button title="Guardar" onPress={handleGuardarPerfil} />
+            <Button title="Cancelar" onPress={() => setModoEdicion(false)} />
+          </ScrollView>
+        </SafeAreaView>
+      ) : (
+
+        // --- Vista cuando NO está en modo edición ---
+        <SafeAreaView style={styles.container}> {/* Usa SafeAreaView como contenedor principal */}
+          <FlatList
+            data={publicaciones}
+            keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
+            renderItem={({ item }) => (
+              // Tu JSX para cada item de la lista (el View con styles.item)
+              <View style={styles.item}>
+                <Image source={{ uri: item.image }} style={styles.imageFlat} /> {/* Asegúrate que styles.imageFlat exista */}
+                <View style={styles.details}>
+                  <Text style={styles.titulo}>{item.titulo}</Text>
+                  <Text style={styles.estado}>Estado: {item.valor}</Text>
+                  <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
+                  <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
+                  <Text style={styles.edad}>Edad: {item.edad}</Text>
+                  <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                  <Text style={styles.localidad}>Usuario: {nombre}</Text>
+                  <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
+                </View>
+              </View>
+            )}
+            ListHeaderComponent={renderListHeader} // Añade la cabecera
+            ListFooterComponent={renderListFooter} // Añade el pie con los botones
+            ListEmptyComponent={renderEmptyList}  // Muestra esto si 'publicaciones' está vacío
+            contentContainerStyle={styles.listContentContainer} // Estilo opcional para el contenido interno
+          />
+        </SafeAreaView>
+      )
+
+      }
       <TabsFalsas></TabsFalsas>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  listContentContainer: { // Estilo opcional para añadir padding al contenido de la lista
+    paddingHorizontal: 20, // Ejemplo: añade padding horizontal
+    paddingBottom: 20, // Ejemplo: añade espacio al final
+  },
+  buttonContainer: { // Estilo opcional para los botones en el footer
+    marginTop: 20, // Ejemplo: añade espacio sobre los botones
+    paddingHorizontal: 20, // Ejemplo: alinea con el padding general si es necesario
+  },
   container: {
     flex: 1,
-    padding: 20,
+    padding: 5,
+    paddingBottom: 30
   },
   titulo: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
+    textAlign: "center"
   },
   input: {
     height: 40,
@@ -289,52 +395,14 @@ const styles = StyleSheet.create({
   localidad: { fontSize: 14, color: "gray" },
   estado: { fontSize: 16, color: "black", fontWeight: "bold" },
   image: {
-    width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
+    width: 200, height: 200, marginBottom: 10, backgroundColor: "gray", borderRadius: 100, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', alignSelf: "center" // Sombra para el botón
+  },
+  imageFlat: {
+    width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
   },
   picker: { height: 60, width: "100%", marginTop: 0 },
-  input2: {
-    height: 40,
-    margin: 5,
-    paddingHorizontal: 10,
-  },
-  modalContainer: {
-    padding: 20,
-    flexDirection: 'row',
 
-  },
-
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '100%',
-  },
-  optionButton: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#452790',
-  },
-  selectButtonModal: {
-    borderWidth: 2,
-    backgroundColor: "#452790",
-    color: '#ffffff',
-    borderColor: 'white',
-    padding: 10,
-    borderRadius: 10,
-    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-
-    marginBottom: 30,
-    width: 'auto',
-    fontSize: 16,
-    height: 60,
-    alignItems: "center", // Centra el texto horizontalmente
-    justifyContent: "center", // Centra el texto verticalmente
-  },
+  
   selectButton: {
     borderWidth: 2,
     backgroundColor: "#f01250",
@@ -350,29 +418,7 @@ const styles = StyleSheet.create({
     alignItems: "center", // Centra el texto horizontalmente
     justifyContent: "center", // Centra el texto verticalmente
   },
-  selectButtonHome: {
-    borderWidth: 1,
-    backgroundColor: "#f01250",
-    color: '#ffffff',
-    borderColor: 'gray',
-    padding: 10,
-    borderRadius: 0,
-    marginBottom: 0,
-    width: 'auto',
-    fontSize: 16,
-    height: 40,
-    alignItems: "center", // Centra el texto horizontalmente
-    justifyContent: "center", // Centra el texto verticalmente
-  },
-  fixedButton: {
-    position: "absolute", // Fija el botón
-    bottom: 30, // Espaciado desde la parte inferior
-    left: 35, // Espaciado desde la izquierda
-    right: 35, // Espaciado desde la derecha
-    padding: 15, // Espaciado interno
-    borderRadius: 30, // Bordes redondeados
-    alignItems: "center", // Centra el texto horizontalmente
-  },
+
   item: {
     flexDirection: 'row',
     padding: 10,
@@ -381,25 +427,7 @@ const styles = StyleSheet.create({
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
 
   },
-  authButton: {
-    backgroundColor: "#452790",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  authButtonText: {
-    backgroundColor: "#452790",
-
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  authForm: {
-    marginTop: 20,
-  },
-
-
+  
   rojo: {
     color: "#f01250"
   },

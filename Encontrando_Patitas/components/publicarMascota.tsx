@@ -5,7 +5,7 @@ import { setPerdidos } from "@/redux/perdidosSlice";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig"
 import { router } from "expo-router";
 
@@ -25,11 +25,11 @@ type Todo = {
     traslado?: string;
     image?: string;
     valor?: string;
+    usuarioId?: string; // Agrega el ID del usuario autenticado
 };
 
 export default function PublicarMascota() {
     const dispatch = useDispatch();
-    const todos = useSelector((state: RootState) => state.todos.data);
     const [input, setInput] = useState("");
     const [edad, setEdad] = useState("");
     const [sexo, setSexo] = useState("");
@@ -104,6 +104,13 @@ export default function PublicarMascota() {
     };
 
     const handleAddPerdidos = async () => {
+        const user = auth.currentUser;
+    
+        if (!user) {
+            alert("Debes iniciar sesión para publicar una mascota.");
+            return;
+        }
+    
         if (
             input.trim() &&
             edad.trim() &&
@@ -121,23 +128,45 @@ export default function PublicarMascota() {
                 traslado,
                 image,
                 valor,
+                usuarioId: user.uid, // Agrega el ID del usuario autenticado
             };
+    
             try {
-                await addDoc(collection(db, "perdidos"), newTodo);
-                console.log("Publicación agregada correctamente a Firebase.");
-                loadData(); // Actualiza la lista después de agregar
+                // Agregar la publicación a Firestore
+                const docRef = await addDoc(collection(db, "perdidos"), newTodo);
+                console.log("Publicación agregada correctamente a Firebase con ID:", docRef.id);
+    
+                // Actualizar el perfil del usuario con el ID de la publicación
+                const userDocRef = doc(db, "usuarios", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+    
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    const publicaciones = userData.publicaciones || []; // Obtén las publicaciones existentes
+                    publicaciones.push(docRef.id); // Agrega el ID de la nueva publicación
+    
+                    await setDoc(userDocRef, { ...userData, publicaciones }, { merge: true });
+                    console.log("Perfil del usuario actualizado con la nueva publicación.");
+                } else {
+                    console.warn("No se encontró el perfil del usuario en Firestore.");
+                }
+    
+                // Actualizar la lista de publicaciones en la aplicación
+                loadData();
+    
+                // Limpiar los campos del formulario
+                setInput("");
+                setEdad("");
+                setSexo("");
+                setLocalidad("");
+                setTraslado("");
+                setValor("");
+                setImage("");
+                setMascotaImage(null);
+                setModalVisible(false);
             } catch (error) {
                 console.error("Error al agregar publicación a Firebase:", error);
             }
-            setInput("");
-            setEdad("");
-            setSexo("");
-            setLocalidad("");
-            setTraslado("");
-            setValor("")
-            setImage("");
-            setMascotaImage(null);
-            setModalVisible(false);
         } else {
             alert("Debes completar todos los datos");
         }
