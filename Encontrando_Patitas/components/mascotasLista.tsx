@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator, Alert, Linking } from "react-native";
-import { collection, getDoc, getDocs, doc } from "firebase/firestore";
+import { collection, getDoc, getDocs, doc, orderBy, query } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -67,6 +67,7 @@ interface MascotaConUsuario {
   image?: string;
   usuarioNombre: string;
   usuarioTelefono?: string | null;
+  fechaPublicacion: string,
 }
 
 interface MascotasListaProps {
@@ -75,7 +76,7 @@ interface MascotasListaProps {
 
 const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
   const [mascotas, setMascotas] = useState<{
-    usuarioNombre: string; id: string; titulo?: string; valor?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string; usuarioTelefono?: string | null; // <-- Agregado para el teléfono
+    usuarioNombre: string; id: string; titulo?: string; valor?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string; usuarioTelefono?: string | null; fechaPublicacion: string; // <-- Agregado para el teléfono
   }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,63 +84,59 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
     const cargarMascotas = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "perdidos"));
+        const queryOrdenado = query(collection(db, "perdidos"), orderBy("fechaPublicacion", "desc"));
+        const querySnapshot = await getDocs(queryOrdenado);
         const datosPromises = querySnapshot.docs.map(async (document): Promise<MascotaConUsuario | null> => {
           const mascotaData = document.data();
-          const usuarioId = mascotaData.usuarioId;
-
+          const usuarioId = (mascotaData as { usuarioId?: string }).usuarioId;
           let usuarioNombre = "Desconocido";
-          let usuarioTelefono: string | null = null; // Inicializa el teléfono como null
+          let usuarioTelefono: string | null = null;
 
           if (usuarioId) {
             const usuarioDocRef = doc(db, "usuarios", usuarioId);
             const usuarioDocSnap = await getDoc(usuarioDocRef);
-
             if (usuarioDocSnap.exists()) {
               const usuarioData = usuarioDocSnap.data();
-              // Asegúrate de que los tipos y nombres de campo coincidan con tu Firestore
               usuarioNombre = (usuarioData as { nombre?: string }).nombre || "Desconocido";
-              usuarioTelefono = (usuarioData as { telefono?: string }).telefono || null; // <-- OBTENER TELÉFONO AQUÍ
+              usuarioTelefono = (usuarioData as { telefono?: string }).telefono || null;
             }
           } else {
-             console.warn(`Mascota con ID ${document.id} no tiene usuarioId.`);
-             // Puedes decidir si quieres mostrar mascotas sin usuarioId o filtrarlas
-             // return null; // Opción: No incluir mascotas sin usuarioId
+            console.warn(`Mascota con ID ${document.id} no tiene usuarioId.`);
           }
+
+          // Después de guardar en Firestore, conviértelo a un formato serializable al cargarlo
+          const fechaPublicacion = mascotaData.fechaPublicacion?.toDate().toISOString() || "";
 
           return {
             id: document.id,
-            ...(mascotaData as Omit<MascotaConUsuario, 'id' | 'usuarioNombre' | 'usuarioTelefono'>), // Castea los datos de mascota
-            valor: mascotaData.valor || "",
+            ...(mascotaData as Omit<MascotaConUsuario, 'id' | 'usuarioNombre' | 'usuarioTelefono'>),
+            valor: (mascotaData as Record<string, any>).valor || "",
             usuarioNombre,
-            usuarioTelefono, // Agrega el teléfono a los datos
+            usuarioTelefono,
+            fechaPublicacion,
           };
         });
 
-        // Espera todas las promesas y filtra los resultados nulos si decidiste usarlos
         const datosCompletos = (await Promise.all(datosPromises)).filter(d => d !== null) as MascotaConUsuario[];
 
-
-        // Aplicar filtro si se proporciona un valor
         const mascotasFiltradas = filtroValor
           ? datosCompletos.filter((mascota) => mascota.valor === filtroValor)
           : datosCompletos;
 
         setMascotas(mascotasFiltradas);
+        console.log("Datos de mascotas:", mascotasFiltradas);
+
       } catch (error) {
         console.error("Error al cargar mascotas:", error);
-        // Considera si quieres usar sampleData aquí o mostrar un mensaje de error
-        // setMascotas(sampleData.map(m => ({...m, usuarioTelefono: null}))); // Adapta sampleData si es necesario
-         Alert.alert("Error", "No se pudieron cargar las mascotas.");
-         setMascotas([]); // Limpiar mascotas en caso de error
+        Alert.alert("Error", "No se pudieron cargar las mascotas.");
+        setMascotas([]);
       } finally {
         setLoading(false);
       }
     };
-
     cargarMascotas();
   }, [filtroValor])// Dependencia en filtroValor para que se recargue al cambiar
- 
+
   // --- Función para abrir WhatsApp ---
   const handleContactPress = async (telefono: string | null) => {
     if (!telefono) {
@@ -166,7 +163,7 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
     }
   };
 
-  
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -196,19 +193,19 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
                 <Text style={styles.edad}>Edad: {item.edad}</Text>
                 <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
                 <Text style={styles.localidad}>Usuario: {item.usuarioNombre}</Text>
+                <Text style={styles.localidad}>fecha: {item.fechaPublicacion.slice(0, 10)}</Text>
 
                 <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
-               {/* Botón Contactar */}
-               <TouchableOpacity
+                {/* Botón Contactar */}
+                <TouchableOpacity
                   style={[
                     styles.selectButton,
-                    styles.verdeBg, // Cambié a verde para contacto, puedes usar celesteBg
                     !item.usuarioTelefono && styles.disabledButton // Estilo opcional si no hay teléfono
                   ]}
                   onPress={() => handleContactPress(item.usuarioTelefono ?? null)}
                   disabled={!item.usuarioTelefono} // Deshabilita el botón si no hay teléfono
                 >
-                  <Text style={styles.blanco}>CONTACTAR POR WHATSAPP</Text>
+                  <Text style={[styles.blanco, { fontSize: 15 }]}>CONTACTAR</Text>
                 </TouchableOpacity>
               </View>
 
@@ -230,8 +227,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   safeArea: { flex: 1 },
-  container: { flex: 1, },
-  details: { flex: 1, margin: 15, },
+  container: { flex: 1, marginBottom: 40 },
+  details: { flex: 1, margin: 10, },
   titulo: { fontSize: 18, fontWeight: "bold" },
   edad: { fontSize: 14, color: "gray" },
   sexo: { fontSize: 14, color: "gray" },
@@ -244,21 +241,24 @@ const styles = StyleSheet.create({
 
   selectButton: {
     borderWidth: 2,
-    backgroundColor: "#f01250",
+    backgroundColor: "#28cf54",
     color: '#ffffff',
-    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
     borderColor: 'white',
-    borderRadius: 10,
-    marginBottom: 5,
-    width: 'auto',
-    fontSize: 16,
-    height: 40,
+    borderRadius: 40,
+    marginBottom: 10,
+    marginTop: 10,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+    width: 180,
+    fontSize: 18,
+    height: 50,
     alignItems: "center", // Centra el texto horizontalmente
     justifyContent: "center", // Centra el texto verticalmente
+    fontWeight: "bold",
   },
 
   item: {
     flexDirection: "row",
+    marginBottom: 60,
     padding: 10,
     borderBottomWidth: 1,
     borderColor: '#452790',

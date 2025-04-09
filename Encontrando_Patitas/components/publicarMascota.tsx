@@ -5,9 +5,9 @@ import { setPerdidos } from "@/redux/perdidosSlice";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, getDoc, setDoc, serverTimestamp, FieldValue } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig"
-import { router } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 
 
 interface RootState {
@@ -26,9 +26,13 @@ type Todo = {
     image?: string;
     valor?: string;
     usuarioId?: string; // Agrega el ID del usuario autenticado
+    fechaPublicacion: string | FieldValue;
 };
 
+
 export default function PublicarMascota() {
+    const router = useRouter();
+    const pathname = usePathname();
     const dispatch = useDispatch();
     const [input, setInput] = useState("");
     const [edad, setEdad] = useState("");
@@ -105,12 +109,11 @@ export default function PublicarMascota() {
 
     const handleAddPerdidos = async () => {
         const user = auth.currentUser;
-    
         if (!user) {
             alert("Debes iniciar sesión para publicar una mascota.");
             return;
         }
-    
+
         if (
             input.trim() &&
             edad.trim() &&
@@ -128,32 +131,35 @@ export default function PublicarMascota() {
                 traslado,
                 image,
                 valor,
-                usuarioId: user.uid, // Agrega el ID del usuario autenticado
+                usuarioId: user.uid,
+                fechaPublicacion: serverTimestamp(),
             };
-    
+           
+           
             try {
                 // Agregar la publicación a Firestore
                 const docRef = await addDoc(collection(db, "perdidos"), newTodo);
                 console.log("Publicación agregada correctamente a Firebase con ID:", docRef.id);
-    
+
                 // Actualizar el perfil del usuario con el ID de la publicación
                 const userDocRef = doc(db, "usuarios", user.uid);
                 const userDocSnap = await getDoc(userDocRef);
-    
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
                     const publicaciones = userData.publicaciones || []; // Obtén las publicaciones existentes
                     publicaciones.push(docRef.id); // Agrega el ID de la nueva publicación
-    
+
                     await setDoc(userDocRef, { ...userData, publicaciones }, { merge: true });
                     console.log("Perfil del usuario actualizado con la nueva publicación.");
                 } else {
                     console.warn("No se encontró el perfil del usuario en Firestore.");
                 }
-    
+
                 // Actualizar la lista de publicaciones en la aplicación
                 loadData();
-    
+
+
+                
                 // Limpiar los campos del formulario
                 setInput("");
                 setEdad("");
@@ -164,6 +170,35 @@ export default function PublicarMascota() {
                 setImage("");
                 setMascotaImage(null);
                 setModalVisible(false);
+
+                // Obtener la ruta actual
+                // Removed unsupported pathname property
+                const currentRoute = pathname; // Use router.pathname to track the current route
+
+                // Redireccionar o recargar según el estado de la mascota y la ubicación actual
+                if (valor === "PERDIDO") {
+                    if (currentRoute === "/perdidosPantalla") {
+                        router.replace("/perdidosPantalla"); // Recargar la página actual
+                    } else {
+                        router.push("/perdidosPantalla");
+                    }
+                } else if (valor === "ENCONTRADO/A") {
+                    if (currentRoute === "/encontrados") {
+                        router.replace("/encontrados"); // Recargar la página actual
+                    } else {
+                        router.push("/encontrados");
+                    }
+                } else if (valor === "EN ADOPCIÓN") {
+                    if (currentRoute === "/enAdopcion") {
+                        router.replace("/enAdopcion"); // Recargar la página actual
+                    } else {
+                        router.push("/enAdopcion");
+                    }
+                } else {
+                    // Redirección por defecto si el estado no coincide con ninguno
+                    router.push("/"); // O a la página principal
+                }
+
             } catch (error) {
                 console.error("Error al agregar publicación a Firebase:", error);
             }
@@ -217,8 +252,8 @@ export default function PublicarMascota() {
                 </View>
             </Modal>
 
-           {/* Botón para abrir el modal (con verificación de autenticación) */}
-           {!modalVisible && (
+            {/* Botón para abrir el modal (con verificación de autenticación) */}
+            {!modalVisible && (
                 <TouchableOpacity
                     style={[styles.selectButtonModal, styles.fixedButton]}
                     onPress={() => {
@@ -231,7 +266,7 @@ export default function PublicarMascota() {
                 </TouchableOpacity>
             )}
 
-            
+
         </SafeAreaView>
     );
 }
@@ -325,7 +360,7 @@ const styles = StyleSheet.create({
     },
     fixedButton: {
         position: "absolute", // Fija el botón
-        bottom: 30, // Espaciado desde la parte inferior
+        bottom: 0, // Espaciado desde la parte inferior
         left: 35, // Espaciado desde la izquierda
         right: 35, // Espaciado desde la derecha
         padding: 15, // Espaciado interno
@@ -337,7 +372,7 @@ const styles = StyleSheet.create({
         padding: 10,
         borderBottomWidth: 1,
         borderColor: '#452790',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.29)',
 
     },
 

@@ -1,8 +1,6 @@
 import React from 'react';
 import { Text, View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Link } from 'expo-router';
-// import { Logo } from "@/components/logo";
-// import Icon from 'react-native-vector-icons/FontAwesome';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Navbar() {

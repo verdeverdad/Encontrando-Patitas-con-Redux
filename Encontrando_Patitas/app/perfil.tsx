@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image, ScrollView, FlatList } from "react-native";
+import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image, ScrollView, FlatList, Alert } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { setPerfil, clearPerfil } from "@/redux/perfilSlice";
 import { auth } from "@/firebaseConfig";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { setDoc, doc, getDoc, updateDoc } from "firebase/firestore";
+import { setDoc, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Picker } from "@react-native-picker/picker";
 import TabsFalsas from "@/components/tabs";
-import storage from '@react-native-firebase/storage'; // Importa Firebase Storage
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView,  } from "react-native-safe-area-context";
 
 
 const Perfil = () => {
@@ -29,37 +27,36 @@ const Perfil = () => {
   const [modo, setModo] = useState<"inicioSesion" | "registro" | null>(null); // Estado para el modo
   const [publicaciones, setPublicaciones] = useState<any[]>([]); // Estado para las publicaciones del usuario
 
-  useEffect(() => {
-    const cargarPublicacionesUsuario = async () => {
-      if (auth.currentUser) {
-        const userDocRef = doc(db, "usuarios", auth.currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
+  const cargarPublicacionesUsuario = async () => {
+    if (auth.currentUser) {
+      const userDocRef = doc(db, "usuarios", auth.currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          const publicacionesIds = userData.publicaciones || [];
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const publicacionesIds = userData.publicaciones || [];
+        // Cargar las publicaciones desde Firestore
+        const publicacionesPromises = publicacionesIds.map(async (id: string) => {
+          const docRef = doc(db, "perdidos", id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { id, ...docSnap.data() };
+          } else {
+            console.warn(`La publicación con ID ${id} no existe.`);
+            return null; // O algún otro valor para indicar que no se encontró
+          }
+        });
 
-          // Cargar las publicaciones desde Firestore
-          const publicacionesPromises = publicacionesIds.map(async (id: string) => {
-            const docRef = doc(db, "perdidos", id);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              return { id, ...docSnap.data() };
-            } else {
-              console.warn(`La publicación con ID ${id} no existe.`);
-              return null; // O algún otro valor para indicar que no se encontró
-            }
-          });
-
-          const publicaciones = (await Promise.all(publicacionesPromises)).filter(p => p !== null);
-          console.log("Publicaciones del usuario:", publicaciones);
-          setPublicaciones(publicaciones); // Actualiza el estado local con las publicaciones
-        } else {
-          console.warn("No se encontró el perfil del usuario en Firestore.");
-        }
+        const publicaciones = (await Promise.all(publicacionesPromises)).filter(p => p !== null);
+        console.log("Publicaciones del usuario:", publicaciones);
+        setPublicaciones(publicaciones); // Actualiza el estado local con las publicaciones
+      } else {
+        console.warn("No se encontró el perfil del usuario en Firestore.");
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     cargarPublicacionesUsuario();
   }, [auth.currentUser]);
 
@@ -186,6 +183,57 @@ const Perfil = () => {
     }
   };
 
+  const handleBorrarPublicacion = async (publicacionId: string) => {
+    Alert.alert(
+      "Borrar Publicación",
+      "¿Estás seguro de que quieres borrar esta publicación?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Borrar",
+          style: "destructive",
+          onPress: async () => {
+            if (auth.currentUser) {
+              try {
+                // Borrar el documento de la colección "perdidos"
+                await deleteDoc(doc(db, "perdidos", publicacionId));
+                console.log(`Publicación con ID ${publicacionId} borrada.`);
+
+                // Actualizar el array 'publicaciones' en el documento del usuario
+                const userDocRef = doc(db, "usuarios", auth.currentUser.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                  const userData = userDocSnap.data();
+                  const publicacionesActualizadas = (userData.publicaciones || []).filter(
+                    (id: string) => id !== publicacionId
+                  );
+                  await updateDoc(userDocRef, { publicaciones: publicacionesActualizadas });
+                  console.log("Referencia de publicación borrada del perfil del usuario.");
+                  // Recargar las publicaciones del usuario
+                  cargarPublicacionesUsuario();
+                } else {
+                  console.warn("No se encontró el perfil del usuario al intentar actualizar las publicaciones.");
+                }
+              } catch (error) {
+                console.error("Error al borrar la publicación:", error);
+                Alert.alert("Error", "No se pudo borrar la publicación.");
+              }
+            } else {
+              Alert.alert("Error", "Usuario no autenticado.");
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
+  
+
   if (!usuarioLogeado) {
     if (modo === "inicioSesion") {
       return (
@@ -197,7 +245,7 @@ const Perfil = () => {
           <Button title="Cancelar" onPress={() => setModo(null)} />
           <TabsFalsas />
         </View>
-      );
+      )
     } else if (modo === "registro") {
       return (
         <View style={styles.container}>
@@ -215,7 +263,7 @@ const Perfil = () => {
           {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
           <TabsFalsas />
         </View>
-      );
+      )
     } else {
       return (
         <View style={styles.container}>
@@ -223,7 +271,7 @@ const Perfil = () => {
           <Button title="Registrarse" onPress={() => setModo("registro")} />
           <TabsFalsas />
         </View>
-      );
+      )
     }
   }
 
@@ -251,9 +299,9 @@ const Perfil = () => {
           <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
             <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
           </TouchableOpacity>
+          {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
           <Button title="Registrarse" onPress={handleRegistrar} />
           <Button title="Cancelar" onPress={() => setModo(null)} />
-          {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
           <TabsFalsas />
         </View>
       );
@@ -270,31 +318,33 @@ const Perfil = () => {
 
   // --- Componente para la cabecera de la FlatList ---
   const renderListHeader = () => (
-    <> {/* Usamos un Fragment para agrupar elementos sin añadir un View extra */}
+    <>
       <Image
         source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
-        style={styles.image} // Asegúrate que este estilo funcione bien aquí
+        style={styles.image}
       />
-      <Text style={styles.titulo}>{nombre || "No disponible"}</Text>
-      <Text style={styles.edad}>Correo Electrónico: {correo || "No disponible"}</Text>
-      <Text style={styles.edad}>Telefono: {telefono || "No disponible"}</Text>
-      {/* Mueve los botones aquí si los quieres *antes* de la lista */}
-      {/* <Button title="Editar" onPress={() => setModoEdicion(true)} /> */}
-      {/* <Button title="Cerrar Sesión" onPress={handleCerrarSesion} /> */}
-      <Text style={styles.titulo}>Mis Publicaciones</Text>
+      <View style={styles.datosContainer}>
+        <Text style={styles.titulo}>{nombre || "No disponible"}</Text>
+        <Text style={styles.correo}>{correo || "No disponible"}</Text>
+        <Text style={styles.correo}>{telefono || "No disponible"}</Text>
+        <View style={{ alignItems: "center" }}>
+          <TouchableOpacity style={styles.buttons} onPress={() => setModoEdicion(true)}><Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>EDITAR</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.buttons2} onPress={handleCerrarSesion}><Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>CERRAR SESIÓN</Text></TouchableOpacity>
+        </View>
+      </View>
+      <Text style={styles.tituloPublicaciones}>Mis Publicaciones</Text>
     </>
   );
 
   // --- Componente para el pie de la FlatList ---
-  const renderListFooter = () => (
-    <>
-      {/* Mueve los botones aquí si los quieres *después* de la lista */}
-      <View style={styles.buttonContainer}> {/* Contenedor opcional para estilos */}
-        <Button title="Editar" onPress={() => setModoEdicion(true)} />
-        <Button title="Cerrar Sesión" onPress={handleCerrarSesion} />
-      </View>
-    </>
-  );
+  // const renderListFooter = () => (
+  //   <>
+  //     <View style={styles.buttonContainer}>
+  //       <Button title="Editar" onPress={() => setModoEdicion(true)} />
+  //       <Button title="Cerrar Sesión" onPress={handleCerrarSesion} />
+  //     </View>
+  //   </>
+  // );
 
   // --- Componente para cuando la lista está vacía ---
   const renderEmptyList = () => (
@@ -310,27 +360,30 @@ const Perfil = () => {
             <Image
               source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
               style={styles.image}
-            />          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+            /><TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
               <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
             </TouchableOpacity>
+            <Text style={styles.label}>Nombre:</Text>
             <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+            <Text style={styles.label}>Correo:</Text>
             <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+            <Text style={styles.label}>Telefono:</Text>
             <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
-            <Button title="Guardar" onPress={handleGuardarPerfil} />
-            <Button title="Cancelar" onPress={() => setModoEdicion(false)} />
+
+            <View style={{ alignItems: "center" }}>
+              <TouchableOpacity style={styles.buttons} onPress={handleGuardarPerfil}><Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>GUARDAR</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.buttons2} onPress={() => setModoEdicion(false)}><Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>CANCELAR</Text></TouchableOpacity>
+            </View>
           </ScrollView>
         </SafeAreaView>
-      ) : (
-
-        // --- Vista cuando NO está en modo edición ---
-        <SafeAreaView style={styles.container}> {/* Usa SafeAreaView como contenedor principal */}
+      ) : ( // --- Vista cuando NO está en modo edición ---
+        <SafeAreaView style={styles.container}>
           <FlatList
             data={publicaciones}
             keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
             renderItem={({ item }) => (
-              // Tu JSX para cada item de la lista (el View con styles.item)
               <View style={styles.item}>
-                <Image source={{ uri: item.image }} style={styles.imageFlat} /> {/* Asegúrate que styles.imageFlat exista */}
+                <Image source={{ uri: item.image }} style={styles.imageFlat} />
                 <View style={styles.details}>
                   <Text style={styles.titulo}>{item.titulo}</Text>
                   <Text style={styles.estado}>Estado: {item.valor}</Text>
@@ -340,13 +393,19 @@ const Perfil = () => {
                   <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
                   <Text style={styles.localidad}>Usuario: {nombre}</Text>
                   <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
+                  <TouchableOpacity
+        style={[styles.buttons, styles.rojoBg]}
+        onPress={() => handleBorrarPublicacion(item.id)}
+      >
+        <Text style={styles.blanco}>Borrar</Text>
+      </TouchableOpacity>
                 </View>
               </View>
             )}
-            ListHeaderComponent={renderListHeader} // Añade la cabecera
-            ListFooterComponent={renderListFooter} // Añade el pie con los botones
-            ListEmptyComponent={renderEmptyList}  // Muestra esto si 'publicaciones' está vacío
-            contentContainerStyle={styles.listContentContainer} // Estilo opcional para el contenido interno
+            ListHeaderComponent={renderListHeader}
+            // ListFooterComponent={renderListFooter}
+            ListEmptyComponent={renderEmptyList}
+            contentContainerStyle={styles.listContentContainer}
           />
         </SafeAreaView>
       )
@@ -359,12 +418,13 @@ const Perfil = () => {
 
 const styles = StyleSheet.create({
   listContentContainer: { // Estilo opcional para añadir padding al contenido de la lista
-    paddingHorizontal: 20, // Ejemplo: añade padding horizontal
-    paddingBottom: 20, // Ejemplo: añade espacio al final
+    paddingHorizontal: 0, // Ejemplo: añade padding horizontal
+    paddingBottom: 0, // Ejemplo: añade espacio al final
   },
-  buttonContainer: { // Estilo opcional para los botones en el footer
+  datosContainer: { // Estilo opcional para los botones en el footer
     marginTop: 20, // Ejemplo: añade espacio sobre los botones
     paddingHorizontal: 20, // Ejemplo: alinea con el padding general si es necesario
+    alignItems: "center"
   },
   container: {
     flex: 1,
@@ -374,8 +434,16 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center"
+    marginBottom: 10,
+    textAlign: "center",
+    color: "#452790",
+  },
+  tituloPublicaciones: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginVertical: 15,
+    textAlign: "center",
+    color: "#452790",
   },
   input: {
     height: 40,
@@ -390,7 +458,8 @@ const styles = StyleSheet.create({
   input3: { marginTop: 10, padding: 10, borderColor: "gray", borderWidth: 1 },
   details: { flex: 1, margin: 15 },
   titulo2: { fontSize: 18, fontWeight: "bold" },
-  edad: { fontSize: 14, color: "gray" },
+  edad: { fontSize: 14, color: "gray", paddingBottom: 5 },
+  correo: { fontSize: 18, color: "#452790", paddingBottom: 5 },
   sexo: { fontSize: 14, color: "gray" },
   localidad: { fontSize: 14, color: "gray" },
   estado: { fontSize: 16, color: "black", fontWeight: "bold" },
@@ -401,8 +470,10 @@ const styles = StyleSheet.create({
     width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
   },
   picker: { height: 60, width: "100%", marginTop: 0 },
+  label: {
+    paddingVertical: 5,
+  },
 
-  
   selectButton: {
     borderWidth: 2,
     backgroundColor: "#f01250",
@@ -427,7 +498,38 @@ const styles = StyleSheet.create({
     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
 
   },
-  
+
+  buttons: {
+    borderWidth: 2,
+    backgroundColor: "#28cf54",
+    color: '#ffffff',
+    borderColor: 'white',
+    borderRadius: 40,
+    marginBottom: 10,
+    marginTop: 10,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+    width: 240,
+    fontSize: 15,
+    height: 50,
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
+  },
+
+  buttons2: {
+    borderWidth: 2,
+    backgroundColor: "#018cae",
+    color: '#ffffff',
+    borderColor: 'white',
+    borderRadius: 40,
+    marginBottom: 10,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+
+    width: 240,
+    fontSize: 15,
+    height: 50,
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
+  },
   rojo: {
     color: "#f01250"
   },
@@ -475,3 +577,5 @@ const styles = StyleSheet.create({
 });
 
 export default Perfil;
+
+

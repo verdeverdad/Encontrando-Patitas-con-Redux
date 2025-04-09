@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+
 const perdidosSlice = createSlice({
   name: "todos",
   initialState: {
@@ -12,6 +13,9 @@ const perdidosSlice = createSlice({
       localidad?: string;
       traslado?: string;
       image?: string;
+      fechaPublicacion?: string,
+
+      
 }[], // Store list of todos
   },
   reducers: {
