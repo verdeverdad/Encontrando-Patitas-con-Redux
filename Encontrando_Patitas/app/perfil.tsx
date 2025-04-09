@@ -9,7 +9,7 @@ import { db } from "@/firebaseConfig";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import TabsFalsas from "@/components/tabs";
-import { SafeAreaView,  } from "react-native-safe-area-context";
+import { SafeAreaView, } from "react-native-safe-area-context";
 
 
 const Perfil = () => {
@@ -22,10 +22,12 @@ const Perfil = () => {
   const [esNuevoUsuario, setEsNuevoUsuario] = useState(true);
   const [perfilImage, setPerfilImage] = useState<string | null>(null);
   const [image, setImage] = useState("");
+  const [descripcion, setDescripcion] = useState("");
   const [telefono, setTelefono] = useState("")
   const [usuarioLogeado, setUsuarioLogeado] = useState(!!auth.currentUser); // Verifica si hay usuario logeado al inicio
   const [modo, setModo] = useState<"inicioSesion" | "registro" | null>(null); // Estado para el modo
   const [publicaciones, setPublicaciones] = useState<any[]>([]); // Estado para las publicaciones del usuario
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null); // Nuevo estado para controlar qué item está expandido
 
   const cargarPublicacionesUsuario = async () => {
     if (auth.currentUser) {
@@ -74,6 +76,7 @@ const Perfil = () => {
       setCorreo(perfil.correo);
       setPerfilImage(perfil.image);
       setTelefono(perfil.telefono)
+      setDescripcion(perfil.descripcion)
       setEsNuevoUsuario(false);
       setPublicaciones(perfil.publicaciones || []); // Asegúrate de cargar las publicaciones si existen
       setTelefono(perfil.telefono || ""); // Asegúrate de cargar el teléfono si existe
@@ -99,7 +102,7 @@ const Perfil = () => {
       const user = userCredential.user;
 
       // Datos del perfil
-      const nuevoPerfil = { nombre, correo: user.email || "", telefono: "", image: image };
+      const nuevoPerfil = { nombre, correo: user.email || "", telefono: telefono, image: image };
 
       // Guarda los datos en Firestore
       await setDoc(doc(db, "usuarios", user.uid), nuevoPerfil);
@@ -155,6 +158,7 @@ const Perfil = () => {
   };
 
   const handleGuardarPerfil = async () => {
+
     if (auth.currentUser) {
       try {
         const nuevoPerfil = {
@@ -163,7 +167,6 @@ const Perfil = () => {
           telefono, // Usa el estado local 'telefono'
           image: perfilImage || image,
         };
-
         // Actualiza el documento en Firestore
         await updateDoc(doc(db, "usuarios", auth.currentUser.uid), nuevoPerfil);
 
@@ -232,87 +235,67 @@ const Perfil = () => {
     );
   };
 
-  
-
-  if (!usuarioLogeado) {
-    if (modo === "inicioSesion") {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.titulo}>Iniciar Sesión</Text>
-          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-          <Button title="Iniciar Sesión" onPress={handleIniciarSesion} />
-          <Button title="Cancelar" onPress={() => setModo(null)} />
-          <TabsFalsas />
-        </View>
-      )
-    } else if (modo === "registro") {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.titulo}>Registrarse</Text>
-          <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-          <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
-          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-          <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-          </TouchableOpacity>
-          <Button title="Registrarse" onPress={handleRegistrar} />
-          <Button title="Cancelar" onPress={() => setModo(null)} />
-          {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
-          <TabsFalsas />
-        </View>
-      )
-    } else {
-      return (
-        <View style={styles.container}>
-          <Button title="Iniciar Sesión" onPress={() => setModo("inicioSesion")} />
-          <Button title="Registrarse" onPress={() => setModo("registro")} />
-          <TabsFalsas />
-        </View>
-      )
-    }
+  const handleCancelar = () => {
+    setNombre("");
+    setCorreo("");
+    setTelefono("");
+    setPerfilImage("");
+    setDescripcion("");
+    setImage("");
+    setModo(null)
   }
 
-  if (esNuevoUsuario) {
-    if (modo === "inicioSesion") {
+
+
+  if (!usuarioLogeado) {
+    if (modo === "registro") {
       return (
-        <View style={styles.container}>
-          <Text style={styles.titulo}>Iniciar Sesión</Text>
-          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-          <Button title="Iniciar Sesión" onPress={handleIniciarSesion} />
-          <Button title="Cancelar" onPress={() => setModo(null)} />
-          <TabsFalsas />
-        </View>
-      );
-    } else if (modo === "registro") {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.titulo}>Registrarse</Text>
-          <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-          <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-          <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
-          <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-          <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-          <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-            <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-          </TouchableOpacity>
-          {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
-          <Button title="Registrarse" onPress={handleRegistrar} />
-          <Button title="Cancelar" onPress={() => setModo(null)} />
-          <TabsFalsas />
-        </View>
-      );
+        <ScrollView style={styles.container}>
+          <View style={styles.containerInicioSesion}>
+            <Text style={styles.titulo}>Registrarse</Text>
+            <TextInput style={styles.inputInicio} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+            <TextInput style={styles.inputInicio} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+            <TextInput style={styles.inputInicio} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
+            <TextInput style={styles.inputInicio} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
+            <TextInput style={[styles.inputInicio, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
+            <TouchableOpacity style={[styles.buttonsInicio, styles.amarilloBg, { marginTop: 15 }]} onPress={pickImage}>
+              <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+            </TouchableOpacity>
+            {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
+            <TouchableOpacity
+              style={[styles.buttonsInicio, styles.celesteBg]}
+              onPress={handleRegistrar}
+            >
+              <Text style={styles.blanco}>REGISTRARME</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.buttonsInicio, styles.rojoBg]} onPress={handleCancelar}>
+              <Text style={styles.blanco}>CANCELAR</Text>
+            </TouchableOpacity>
+
+          </View>
+        </ScrollView>
+      )
     } else {
       return (
         <View style={styles.container}>
-          <Button title="Iniciar Sesión" onPress={() => setModo("inicioSesion")} />
-          <Button title="Registrarse" onPress={() => setModo("registro")} />
+          <View style={styles.containerInicioSesion}>
+            <Text style={styles.titulo}>Iniciar Sesión</Text>
+            <TextInput style={styles.inputInicio} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+            <TextInput style={styles.inputInicio} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
+            <Text></Text>
+            <TouchableOpacity style={[styles.buttonsInicio, styles.celesteBg]} onPress={handleIniciarSesion}>
+              <Text style={styles.blanco}>INICIAR SESIÓN</Text>
+            </TouchableOpacity>
+            <Text style={styles.edad}>¿Aun no tienes cuenta?</Text>
+            <TouchableOpacity style={[styles.buttonsInicio, styles.amarilloBg]} onPress={() => setModo("registro")}>
+              <Text style={styles.blanco}>REGISTRARME</Text>
+            </TouchableOpacity>
+
+
+          </View>
           <TabsFalsas />
         </View>
-      );
+      )
     }
   }
 
@@ -350,6 +333,10 @@ const Perfil = () => {
   const renderEmptyList = () => (
     <Text style={{ textAlign: "center", marginTop: 20 }}>No has creado publicaciones aún.</Text>
   );
+
+  function toggleExpanded(id: any): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <View style={styles.container}>
@@ -389,16 +376,27 @@ const Perfil = () => {
                   <Text style={styles.estado}>Estado: {item.valor}</Text>
                   <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
                   <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
-                  <Text style={styles.edad}>Edad: {item.edad}</Text>
-                  <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
-                  <Text style={styles.localidad}>Usuario: {nombre}</Text>
-                  <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
+                  <Text style={styles.localidad}>Usuario: {item.usuarioNombre}</Text>
+                  {expandedItemId === item.id && (
+                    <View >
+                      {/* Aquí puedes mostrar más información del item */}
+                      <Text style={styles.edad}>Edad: {item.edad}</Text>
+                      <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                      <Text style={styles.localidad}>Descripcioón: {item.descripcion}</Text>
+
+                      {/* Agrega aquí cualquier otra información que quieras mostrar */}
+                    </View>
+                  )}
+                  <TouchableOpacity onPress={() => toggleExpanded(item.id)}>
+                    <Text style={{ fontSize: 12, marginVertical: 4, color: 'blue' }}>
+                      {expandedItemId === item.id ? 'menos info...' : 'mas info...'}
+                    </Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
-        style={[styles.buttons, styles.rojoBg]}
-        onPress={() => handleBorrarPublicacion(item.id)}
-      >
-        <Text style={styles.blanco}>Borrar</Text>
-      </TouchableOpacity>
+                    style={[styles.buttonsList, styles.rojoBg]}
+                    onPress={() => handleBorrarPublicacion(item.id)}
+                  ><Text style={styles.blanco}>BORRAR</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -431,6 +429,46 @@ const styles = StyleSheet.create({
     padding: 5,
     paddingBottom: 30
   },
+  containerInicioSesion: {
+    marginHorizontal: 15,
+    marginTop: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputInicio: {
+    height: 40,
+    width: 280,
+    borderColor: "gray",
+    borderWidth: 1,
+    marginTop: 15,
+    paddingHorizontal: 10,
+  },
+  buttonsInicio: {
+    borderWidth: 2,
+    color: '#ffffff',
+    borderColor: 'white',
+    borderRadius: 40,
+    marginBottom: 20,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+    width: 240,
+    fontSize: 15,
+    height: 50,
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
+  },
+  buttonsList: {
+    borderWidth: 2,
+    color: '#ffffff',
+    borderColor: 'white',
+    borderRadius: 40,
+    marginBottom: 20,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+    width: 140,
+    fontSize: 15,
+    height: 50,
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
+  },
   titulo: {
     fontSize: 24,
     fontWeight: "bold",
@@ -452,6 +490,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 10,
   },
+
 
   safeArea: { flex: 1 },
   inputContainer: { flexDirection: "row", padding: 10 },
@@ -501,7 +540,7 @@ const styles = StyleSheet.create({
 
   buttons: {
     borderWidth: 2,
-    backgroundColor: "#28cf54",
+    backgroundColor: "#018cae",
     color: '#ffffff',
     borderColor: 'white',
     borderRadius: 40,
@@ -517,7 +556,7 @@ const styles = StyleSheet.create({
 
   buttons2: {
     borderWidth: 2,
-    backgroundColor: "#018cae",
+    backgroundColor: "#f7a423",
     color: '#ffffff',
     borderColor: 'white',
     borderRadius: 40,

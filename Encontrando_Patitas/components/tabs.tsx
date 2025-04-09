@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
     tabButton: {
         alignItems: "center",
         justifyContent: "center",
+        
     },
     tabText: {
         fontSize: 10,

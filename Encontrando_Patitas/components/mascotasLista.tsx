@@ -68,6 +68,7 @@ interface MascotaConUsuario {
   usuarioNombre: string;
   usuarioTelefono?: string | null;
   fechaPublicacion: string,
+  descripcion: string,
 }
 
 interface MascotasListaProps {
@@ -76,9 +77,11 @@ interface MascotasListaProps {
 
 const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
   const [mascotas, setMascotas] = useState<{
-    usuarioNombre: string; id: string; titulo?: string; valor?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string; usuarioTelefono?: string | null; fechaPublicacion: string; // <-- Agregado para el teléfono
+    usuarioNombre: string; id: string; titulo?: string; valor?: string; sexo?: string; edad?: number; localidad?: string; traslado?: string; image?: string; usuarioTelefono?: string | null; fechaPublicacion: string; descripcion: string// <-- Agregado para el teléfono
   }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null); // Nuevo estado para controlar qué item está expandido
+
 
   useEffect(() => {
     const cargarMascotas = async () => {
@@ -144,9 +147,6 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
       return;
     }
 
-    // Limpieza básica: quitar espacios, guiones. Podría necesitar ajustes.
-    // IMPORTANTE: Asegúrate que el número incluya el código de país (ej: 598 para Uruguay)
-    // Si no lo incluye, deberás añadirlo aquí. Asumamos que viene incluido por ahora.
     const numeroLimpio = telefono.replace(/[\s-()]/g, '');
     const url = `whatsapp://send?phone=${numeroLimpio}`;
 
@@ -163,6 +163,9 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
     }
   };
 
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItemId(expandedItemId === itemId ? null : itemId);
+  };
 
   if (loading) {
     return (
@@ -175,9 +178,7 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-
       <View style={styles.container}>
-
         <FlatList
           data={mascotas}
           keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
@@ -190,38 +191,54 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
                 <Text style={styles.estado}>Estado: {item.valor}</Text>
                 <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
                 <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
-                <Text style={styles.edad}>Edad: {item.edad}</Text>
-                <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
                 <Text style={styles.localidad}>Usuario: {item.usuarioNombre}</Text>
                 <Text style={styles.localidad}>fecha: {item.fechaPublicacion.slice(0, 10)}</Text>
+                {expandedItemId === item.id && (
+                  <View >
+                    {/* Aquí puedes mostrar más información del item */}
+                    <Text style={styles.edad}>Edad: {item.edad}</Text>
+                    <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                    <Text style={styles.localidad}>Descripcioón: {item.descripcion}</Text>
 
-                <Text style={{ fontSize: 12, marginVertical: 4 }}> mas info...</Text>
+                    {/* Agrega aquí cualquier otra información que quieras mostrar */}
+                  </View>
+                )}
+                <TouchableOpacity onPress={() => toggleExpanded(item.id)}>
+                  <Text style={{ fontSize: 12, marginVertical: 4, color: 'blue' }}>
+                    {expandedItemId === item.id ? 'menos info...' : 'mas info...'}
+                  </Text>
+                </TouchableOpacity>
+
+                
+
                 {/* Botón Contactar */}
                 <TouchableOpacity
                   style={[
                     styles.selectButton,
-                    !item.usuarioTelefono && styles.disabledButton // Estilo opcional si no hay teléfono
+                    !item.usuarioTelefono && styles.disabledButton
                   ]}
                   onPress={() => handleContactPress(item.usuarioTelefono ?? null)}
-                  disabled={!item.usuarioTelefono} // Deshabilita el botón si no hay teléfono
+                  disabled={!item.usuarioTelefono}
                 >
                   <Text style={[styles.blanco, { fontSize: 15 }]}>CONTACTAR</Text>
                 </TouchableOpacity>
               </View>
-
-
             </View>
           )}
         />
-        <PublicarMascota></PublicarMascota>
+        <PublicarMascota />
       </View>
-      <TabsFalsas></TabsFalsas>
+      <TabsFalsas />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-
+  moreInfo: {
+    margin: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
   disabledButton: {
     backgroundColor: '#a0a0a0', // Color grisáceo para deshabilitado
     opacity: 0.7,

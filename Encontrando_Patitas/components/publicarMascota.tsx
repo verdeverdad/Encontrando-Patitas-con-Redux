@@ -27,6 +27,7 @@ type Todo = {
     valor?: string;
     usuarioId?: string; // Agrega el ID del usuario autenticado
     fechaPublicacion: string | FieldValue;
+    descripcion: string;
 };
 
 
@@ -38,6 +39,7 @@ export default function PublicarMascota() {
     const [edad, setEdad] = useState("");
     const [sexo, setSexo] = useState("");
     const [localidad, setLocalidad] = useState("");
+    const [descripcion, setDescripcion] = useState("");
     const [traslado, setTraslado] = useState("");
     const [mascotaImage, setMascotaImage] = useState<string | null>(null);
     const [image, setImage] = useState("");
@@ -107,6 +109,8 @@ export default function PublicarMascota() {
         return true;
     };
 
+    const [isPublishing, setIsPublishing] = useState(false);
+
     const handleAddPerdidos = async () => {
         const user = auth.currentUser;
         if (!user) {
@@ -122,7 +126,10 @@ export default function PublicarMascota() {
             traslado.trim() &&
             image.trim() &&
             valor.trim()
+
         ) {
+            setIsPublishing(true); // Inicia el loading
+
             const newTodo: Todo = {
                 titulo: input,
                 edad,
@@ -133,9 +140,9 @@ export default function PublicarMascota() {
                 valor,
                 usuarioId: user.uid,
                 fechaPublicacion: serverTimestamp(),
+                descripcion,
             };
-           
-           
+
             try {
                 // Agregar la publicación a Firestore
                 const docRef = await addDoc(collection(db, "perdidos"), newTodo);
@@ -146,9 +153,8 @@ export default function PublicarMascota() {
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    const publicaciones = userData.publicaciones || []; // Obtén las publicaciones existentes
-                    publicaciones.push(docRef.id); // Agrega el ID de la nueva publicación
-
+                    const publicaciones = userData.publicaciones || [];
+                    publicaciones.push(docRef.id);
                     await setDoc(userDocRef, { ...userData, publicaciones }, { merge: true });
                     console.log("Perfil del usuario actualizado con la nueva publicación.");
                 } else {
@@ -158,8 +164,6 @@ export default function PublicarMascota() {
                 // Actualizar la lista de publicaciones en la aplicación
                 loadData();
 
-
-                
                 // Limpiar los campos del formulario
                 setInput("");
                 setEdad("");
@@ -167,14 +171,12 @@ export default function PublicarMascota() {
                 setLocalidad("");
                 setTraslado("");
                 setValor("");
+                setDescripcion("")
                 setImage("");
                 setMascotaImage(null);
                 setModalVisible(false);
 
-                // Obtener la ruta actual
-                // Removed unsupported pathname property
-                const currentRoute = pathname; // Use router.pathname to track the current route
-
+                const currentRoute = pathname; // Obtener la ruta actual
                 // Redireccionar o recargar según el estado de la mascota y la ubicación actual
                 if (valor === "PERDIDO") {
                     if (currentRoute === "/perdidosPantalla") {
@@ -199,8 +201,11 @@ export default function PublicarMascota() {
                     router.push("/"); // O a la página principal
                 }
 
+                setIsPublishing(false); // Finaliza el loading en caso de éxito
+
             } catch (error) {
                 console.error("Error al agregar publicación a Firebase:", error);
+                setIsPublishing(false); // Finaliza el loading en caso de error
             }
         } else {
             alert("Debes completar todos los datos");
@@ -216,7 +221,7 @@ export default function PublicarMascota() {
             <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
                 <View style={[styles.modalContent, styles.modalContainer]}>
                     <ScrollView>
-                        <Pressable onPress={() => setModalVisible(false)} >
+                        <Pressable onPress={() => setModalVisible(false)} style={{marginBottom: 10}}>
                             <MaterialIcons name="close" color="red" size={22} />
                         </Pressable>
                         <Text style={styles.titulo}>PUBLICAR UNA MASCOTA</Text>
@@ -234,14 +239,23 @@ export default function PublicarMascota() {
                         <TextInput style={styles.input} placeholder="Ingrese localidad" value={localidad} onChangeText={setLocalidad} />
                         <TextInput style={styles.input} placeholder="Ingrese sexo de la mascota" value={sexo} onChangeText={setSexo} />
                         <TextInput style={styles.input} placeholder="Ingrese edad de mascota" value={edad} onChangeText={setEdad} />
-                        <TextInput style={styles.input} placeholder="Ingrese si cuenta contraslado" value={traslado} onChangeText={setTraslado} />
+                        <TextInput style={styles.input} placeholder="Ingrese si cuenta con traslado" value={traslado} onChangeText={setTraslado} />
+                        <TextInput style={styles.input} placeholder="Descripcion o datos adicionales" value={descripcion} onChangeText={setDescripcion} />
                         <TextInput style={[styles.input, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-                        <View style={{ margin: 10 }}>
+                        <View style={{ margin: 10, justifyContent: 'center', alignItems: 'center', }}>
                             <TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
                                 <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.selectButton, styles.rojoBg]} onPress={handleAddPerdidos}>
-                                <Text style={styles.blanco}>PUBLICAR MASCOTA</Text>
+                            <TouchableOpacity
+                                style={[styles.selectButton, styles.rojoBg]}
+                                onPress={handleAddPerdidos}
+                                disabled={isPublishing} // Deshabilita el botón mientras se publica
+                            >
+                                {isPublishing ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text style={styles.blanco}>PUBLICAR MASCOTA</Text>
+                                )}
                             </TouchableOpacity>
                             <TouchableOpacity style={[styles.selectButton, styles.azuladoBg]} onPress={() => setModalVisible(false)}>
                                 <Text style={[styles.blanco,]}>CERRAR</Text>
@@ -272,12 +286,16 @@ export default function PublicarMascota() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1 },
+    safeArea: { flex: 1},
     container: { flex: 1, },
-    inputContainer: { flexDirection: "row", padding: 10 },
-    input: { marginTop: 10, padding: 10, borderColor: "gray", borderWidth: 1 },
+    input: {   height: 40,
+        width: 280,
+        borderColor: "gray",
+        borderWidth: 1,
+        marginTop: 15,
+        paddingHorizontal: 10, alignSelf: 'center' },
     details: { flex: 1, margin: 15 },
-    titulo: { fontSize: 18, fontWeight: "bold" },
+    titulo: { fontSize: 18, fontWeight: "bold", alignSelf: 'center' },
     edad: { fontSize: 14, color: "gray" },
     sexo: { fontSize: 14, color: "gray" },
     localidad: { fontSize: 14, color: "gray" },
@@ -285,28 +303,26 @@ const styles = StyleSheet.create({
     image: {
         width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
     },
-    picker: { height: 60, width: "100%", marginTop: 0 },
+    picker: { height: 52, width: 200, marginTop: 0,marginLeft: 22, },
     input2: {
         height: 40,
-        margin: 5,
+        marginTop: 8,
+        marginLeft: 26,
         paddingHorizontal: 10,
+        
     },
     modalContainer: {
+        flex: 1,
         padding: 20,
         flexDirection: 'row',
-
-    },
-
-    modalBackground: {
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+
     },
     modalContent: {
         backgroundColor: 'white',
         padding: 20,
         borderRadius: 10,
-        width: '100%',
     },
     optionButton: {
         padding: 10,
@@ -321,7 +337,6 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-
         marginBottom: 30,
         width: 'auto',
         fontSize: 16,
@@ -331,18 +346,16 @@ const styles = StyleSheet.create({
     },
     selectButton: {
         borderWidth: 2,
-        backgroundColor: "#f01250",
-        color: '#ffffff',
-        borderColor: 'white',
-        borderRadius: 20,
-        marginBottom: 10,
-        boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-
-        width: 'auto',
-        fontSize: 16,
-        height: 40,
-        alignItems: "center", // Centra el texto horizontalmente
-        justifyContent: "center", // Centra el texto verticalmente
+    color: '#ffffff',
+    borderColor: 'white',
+    borderRadius: 40,
+    marginBottom: 10,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+    width: 240,
+    fontSize: 15,
+    height: 50,
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
     },
     selectButtonHome: {
         borderWidth: 1,

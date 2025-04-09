@@ -14,6 +14,7 @@ const perdidosSlice = createSlice({
       traslado?: string;
       image?: string;
       fechaPublicacion?: string,
+      descripcion?: string,
 
       
 }[], // Store list of todos

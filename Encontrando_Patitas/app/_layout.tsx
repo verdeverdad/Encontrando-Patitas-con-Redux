@@ -36,7 +36,6 @@ export default function RootLayout() {
         </View>
         <Navbar />
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="contador" options={{ headerShown: true, title: "CONTADOR", headerStyle: { backgroundColor: "#018cae" }, headerTintColor: "#fff", headerTitleAlign: 'center', headerTitleStyle: { fontSize: 15, } }} />
           <Stack.Screen name="perdidosPantalla" options={{ headerShown: true, title: "PERDIDOS", headerStyle: { backgroundColor: "#018cae" }, headerTintColor: "#fff", headerTitleAlign: 'center', headerTitleStyle: { fontSize: 15, } }} />
           <Stack.Screen name="encontrados" options={{ headerShown: true, title: "ENCONTRADOS", headerStyle: { backgroundColor: "#018cae" }, headerTintColor: "#fff", headerTitleAlign: 'center', headerTitleStyle: { fontSize: 15, } }} />
           <Stack.Screen name="enAdopcion" options={{ headerShown: true, title: "EN ADOPCION", headerStyle: { backgroundColor: "#018cae" }, headerTintColor: "#fff", headerTitleAlign: 'center', headerTitleStyle: { fontSize: 15, } }} />
