@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import TabsFalsas from "@/components/tabs";
 import { SafeAreaView, } from "react-native-safe-area-context";
+import { NavBar } from "@/components/Navbar";
 
 
 const Perfil = () => {
@@ -249,8 +250,8 @@ const Perfil = () => {
 
   if (!usuarioLogeado) {
     if (modo === "registro") {
-      return (
-        <ScrollView style={styles.container}>
+      return (<View style={{flex:1}}><NavBar />
+        <View style={styles.container}>
           <View style={styles.containerInicioSesion}>
             <Text style={styles.titulo}>Registrarse</Text>
             <TextInput style={styles.inputInicio} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
@@ -258,9 +259,9 @@ const Perfil = () => {
             <TextInput style={styles.inputInicio} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
             <TextInput style={styles.inputInicio} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
             <TextInput style={[styles.inputInicio, { display: "none" }]} placeholder="Ingrese URL de la imagen" value={image} onChangeText={setImage} />
-            <TouchableOpacity style={[styles.buttonsInicio, styles.amarilloBg, { marginTop: 15 }]} onPress={pickImage}>
+            {!perfilImage && <TouchableOpacity style={[styles.buttonsInicio, styles.amarilloBg, { marginTop: 15 }]} onPress={pickImage}>
               <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
             {perfilImage && <Image source={{ uri: perfilImage }} style={styles.image} />}
             <TouchableOpacity
               style={[styles.buttonsInicio, styles.celesteBg]}
@@ -273,11 +274,13 @@ const Perfil = () => {
             </TouchableOpacity>
 
           </View>
-        </ScrollView>
+        </View>
+        </View>
       )
     } else {
-      return (
+      return (<View style={{flex:1}}><NavBar />
         <View style={styles.container}>
+
           <View style={styles.containerInicioSesion}>
             <Text style={styles.titulo}>Iniciar Sesión</Text>
             <TextInput style={styles.inputInicio} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
@@ -293,8 +296,8 @@ const Perfil = () => {
 
 
           </View>
-          <TabsFalsas />
         </View>
+      </View>
       )
     }
   }
@@ -339,6 +342,7 @@ const Perfil = () => {
   }
 
   return (
+    <View style={{flex:1}}><NavBar />
     <View style={styles.container}>
       {modoEdicion ? (
         <SafeAreaView style={styles.container}>
@@ -409,7 +413,7 @@ const Perfil = () => {
       )
 
       }
-      <TabsFalsas></TabsFalsas>
+    </View>
     </View>
   );
 };
@@ -431,7 +435,7 @@ const styles = StyleSheet.create({
   },
   containerInicioSesion: {
     marginHorizontal: 15,
-    marginTop: 80,
+    marginTop: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -503,7 +507,7 @@ const styles = StyleSheet.create({
   localidad: { fontSize: 14, color: "gray" },
   estado: { fontSize: 16, color: "black", fontWeight: "bold" },
   image: {
-    width: 200, height: 200, marginBottom: 10, backgroundColor: "gray", borderRadius: 100, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', alignSelf: "center" // Sombra para el botón
+    width: 160, height: 160, marginVertical: 10, backgroundColor: "gray", borderRadius: 80, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', alignSelf: "center" // Sombra para el botón
   },
   imageFlat: {
     width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón

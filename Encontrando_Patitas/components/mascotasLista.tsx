@@ -228,7 +228,6 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
         />
         <PublicarMascota />
       </View>
-      <TabsFalsas />
     </SafeAreaView>
   );
 };
@@ -302,7 +301,7 @@ const styles = StyleSheet.create({
     color: "#452790"
   },
   blanco: {
-    color: "#ffffff"
+    color: "#ffffff",textShadowColor: "#000", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 5,
   },
   rojoBg: {
     backgroundColor: "#f01250"

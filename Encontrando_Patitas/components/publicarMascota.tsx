@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, StyleSheet, SafeAreaView, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, Pressable, Alert } from "react-native";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { setPerdidos } from "@/redux/perdidosSlice";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
@@ -410,7 +410,8 @@ const styles = StyleSheet.create({
         color: "#452790"
     },
     blanco: {
-        color: "#ffffff"
+        color: "#ffffff",
+        textShadowColor: "#000", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10,
     },
     rojoBg: {
         backgroundColor: "#f01250"

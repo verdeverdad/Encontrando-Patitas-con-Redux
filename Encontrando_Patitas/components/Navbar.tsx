@@ -3,29 +3,46 @@ import { Text, View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function Navbar() {
+type NavBarOption = "perdidos" | "encontrados" | "enAdopcion";
+
+// export const NavBar = ({ active }: { active?: NavBarOption }) => {
+//   return (
+//     <View style={{ flexDirection: "row", gap: 20, padding: 20 }}>
+//       <Link href="/perdidos" style={active === "perdidos" && styles.active}>
+//         Perdidos
+//       </Link>
+//       <Link
+//         href="/encontrados"
+//         style={active === "encontrados" && styles.active}
+//       >
+//         Encontrados
+//       </Link>
+//       <Link href="/enadopcion" style={active === "enadopcion" && styles.active}>
+//         En Adopción
+//       </Link>
+//     </View>
+//   );
+// };
+
+export const NavBar = ({ active }: { active?: NavBarOption }) => {
     return (
         <SafeAreaView style={styles.navbar}>
-          <Link href="./perdidosPantalla" asChild>
-            <TouchableOpacity style={styles.texto}>
+          <Link href="./perdidosPantalla" style={active === "perdidos" && styles.active}>
               <Text style={styles.texto}>PERDIDOS</Text>
-            </TouchableOpacity>
           </Link>
-          <Link href="/encontrados" asChild>
-            <TouchableOpacity style={styles.texto}>
+          <Link href="/encontrados" style={active === "encontrados" && styles.active}>
               <Text style={styles.texto}>ENCONTRADOS</Text>
-            </TouchableOpacity>
           </Link>
-          <Link href="/enAdopcion" asChild>
-            <TouchableOpacity style={styles.texto}>
+          <Link href="/enAdopcion" style={active === "enAdopcion" && styles.active}>
               <Text style={styles.texto}>EN ADOPCIÓN</Text>
-            </TouchableOpacity>
           </Link>
         </SafeAreaView>
       );
     }
 
 const styles = StyleSheet.create({
+  active: { fontWeight: "bold", fontSize: 20, textShadowColor: "#000", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10, color: "#f01250" },
+
     navbar: {
         backgroundColor: "#f01250",
         flexDirection: 'row', // Alinea los elementos horizontalmente

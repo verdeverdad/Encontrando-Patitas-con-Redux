@@ -1,3 +1,4 @@
+import { NavBar } from "@/components/Navbar";
 import TabsFalsas from "@/components/tabs";
 import { Titulos } from "@/components/titulos";
 import React, { useEffect, useState } from "react";
@@ -6,6 +7,7 @@ import { View, Text, TextInput, Button, FlatList, StyleSheet, SafeAreaView, Pres
 export default function Index() {
   return (<SafeAreaView style={styles.safeArea}>
     <ScrollView>
+    <NavBar />
       <View style={{ flexGrow: 1, justifyContent: 'flex-start', alignItems: 'center', marginTop: 0,         boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
 }}>
         <Image
@@ -17,7 +19,6 @@ export default function Index() {
     <Titulos></Titulos>
 
     </ScrollView>
-    <TabsFalsas></TabsFalsas>
   </SafeAreaView>
   );
 }
