@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image, ScrollView, FlatList, Alert } from "react-native";
+import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Image, ScrollView, FlatList, Alert, ActivityIndicator } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { setPerfil, clearPerfil } from "@/redux/perfilSlice";
 import { auth } from "@/firebaseConfig";
@@ -11,6 +11,8 @@ import * as ImagePicker from "expo-image-picker";
 import TabsFalsas from "@/components/tabs";
 import { SafeAreaView, } from "react-native-safe-area-context";
 import { NavBar } from "@/components/Navbar";
+import PublicarMascota from "@/components/publicarMascota";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 const Perfil = () => {
@@ -29,7 +31,29 @@ const Perfil = () => {
   const [modo, setModo] = useState<"inicioSesion" | "registro" | null>(null); // Estado para el modo
   const [publicaciones, setPublicaciones] = useState<any[]>([]); // Estado para las publicaciones del usuario
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null); // Nuevo estado para controlar qué item está expandido
+  const [isGuardandoPerfil, setIsGuardandoPerfil] = useState(false); // Nuevo estado de carga
 
+
+  const SESSION_ACTIVE_KEY = 'sessionActive';
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const sessionActive = await AsyncStorage.getItem(SESSION_ACTIVE_KEY);
+        if (!sessionActive && auth.currentUser) {
+          console.log("Posible cierre inesperado o recarga. Limpiando sesión local.");
+          dispatch(clearPerfil());
+          // No se recomienda cerrar sesión en Firebase Auth aquí, ya que podría ser un cierre por el sistema o una recarga.
+          // La mejor práctica es que el usuario cierre sesión explícitamente.
+          router.replace('/'); // O redirigir a la pantalla de inicio
+        }
+      } catch (error) {
+        console.error("Error al verificar la sesión:", error);
+      }
+    };
+
+    checkSession();
+  }, []);
   const cargarPublicacionesUsuario = async () => {
     if (auth.currentUser) {
       const userDocRef = doc(db, "usuarios", auth.currentUser.uid);
@@ -115,6 +139,8 @@ const Perfil = () => {
     } catch (error) {
       console.error("Error al registrar:", error);
     }
+    await AsyncStorage.setItem(SESSION_ACTIVE_KEY, 'true');
+
   };
   const handleIniciarSesion = async () => {
     try {
@@ -140,11 +166,15 @@ const Perfil = () => {
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
     }
+    await AsyncStorage.setItem(SESSION_ACTIVE_KEY, 'true');
+
   };
   const handleCerrarSesion = async () => {
     try {
       await signOut(auth);
       dispatch(clearPerfil());
+      await AsyncStorage.removeItem(SESSION_ACTIVE_KEY);
+      setUsuarioLogeado(false);
       setEsNuevoUsuario(true);
       setNombre("");
       setCorreo("");
@@ -159,6 +189,7 @@ const Perfil = () => {
   };
 
   const handleGuardarPerfil = async () => {
+    setIsGuardandoPerfil(true); // Inicia la carga
 
     if (auth.currentUser) {
       try {
@@ -177,13 +208,17 @@ const Perfil = () => {
         setModoEdicion(false);
         console.log("Perfil guardado en Firestore:", nuevoPerfil);
         alert("Perfil guardado correctamente.");
+        cargarPublicacionesUsuario();
       } catch (error) {
         console.error("Error al guardar el perfil en Firestore:", error);
         alert("Error al guardar el perfil.");
+      } finally {
+        setIsGuardandoPerfil(false); // Finaliza la carga
       }
     } else {
       console.warn("No hay usuario logeado para guardar el perfil.");
       alert("No se puede guardar el perfil: usuario no logeado.");
+      setIsGuardandoPerfil(false);
     }
   };
 
@@ -219,6 +254,8 @@ const Perfil = () => {
                   console.log("Referencia de publicación borrada del perfil del usuario.");
                   // Recargar las publicaciones del usuario
                   cargarPublicacionesUsuario();
+                  Alert.alert("Éxito", "La publicación ha sido borrada correctamente.");
+
                 } else {
                   console.warn("No se encontró el perfil del usuario al intentar actualizar las publicaciones.");
                 }
@@ -246,11 +283,14 @@ const Perfil = () => {
     setModo(null)
   }
 
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItemId(expandedItemId === itemId ? null : itemId);
+  };
 
 
   if (!usuarioLogeado) {
     if (modo === "registro") {
-      return (<View style={{flex:1}}><NavBar />
+      return (<View style={{ flex: 1 }}><NavBar />
         <View style={styles.container}>
           <View style={styles.containerInicioSesion}>
             <Text style={styles.titulo}>Registrarse</Text>
@@ -275,10 +315,10 @@ const Perfil = () => {
 
           </View>
         </View>
-        </View>
+      </View>
       )
     } else {
-      return (<View style={{flex:1}}><NavBar />
+      return (<View style={{ flex: 1 }}><NavBar />
         <View style={styles.container}>
 
           <View style={styles.containerInicioSesion}>
@@ -305,14 +345,14 @@ const Perfil = () => {
   // --- Componente para la cabecera de la FlatList ---
   const renderListHeader = () => (
     <>
-      <Image
-        source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
-        style={styles.image}
-      />
       <View style={styles.datosContainer}>
-        <Text style={styles.titulo}>{nombre || "No disponible"}</Text>
-        <Text style={styles.correo}>{correo || "No disponible"}</Text>
-        <Text style={styles.correo}>{telefono || "No disponible"}</Text>
+        <Image
+          source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
+          style={styles.image}
+        />
+        <Text style={styles.titulo}>{nombre || <ActivityIndicator></ActivityIndicator>}</Text>
+        <Text style={styles.correo}>{correo || <ActivityIndicator></ActivityIndicator>}</Text>
+        <Text style={styles.correo}>{telefono || <ActivityIndicator></ActivityIndicator>}</Text>
         <View style={{ alignItems: "center" }}>
           <TouchableOpacity style={styles.buttons} onPress={() => setModoEdicion(true)}><Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>EDITAR</Text></TouchableOpacity>
           <TouchableOpacity style={styles.buttons2} onPress={handleCerrarSesion}><Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>CERRAR SESIÓN</Text></TouchableOpacity>
@@ -337,83 +377,89 @@ const Perfil = () => {
     <Text style={{ textAlign: "center", marginTop: 20 }}>No has creado publicaciones aún.</Text>
   );
 
-  function toggleExpanded(id: any): void {
-    throw new Error("Function not implemented.");
-  }
+
 
   return (
-    <View style={{flex:1}}><NavBar />
-    <View style={styles.container}>
-      {modoEdicion ? (
-        <SafeAreaView style={styles.container}>
-          <ScrollView>
-            <Text style={styles.titulo}>Editar Perfil</Text>
-            <Image
-              source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
-              style={styles.image}
-            /><TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
-              <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
-            </TouchableOpacity>
-            <Text style={styles.label}>Nombre:</Text>
-            <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-            <Text style={styles.label}>Correo:</Text>
-            <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
-            <Text style={styles.label}>Telefono:</Text>
-            <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
+    <View style={{ flex: 1 }}><NavBar />
+      <View style={styles.container}>
+        {modoEdicion ? (
+          <SafeAreaView style={styles.container}>
+            <ScrollView>
+              <Text style={styles.titulo}>Editar Perfil</Text>
+              <Image
+                source={{ uri: perfilImage || "https://via.placeholder.com/150" }}
+                style={styles.image}
+              /><TouchableOpacity style={[styles.selectButton, styles.amarilloBg]} onPress={pickImage}>
+                <Text style={styles.blanco}>SELECCIONAR IMAGEN</Text>
+              </TouchableOpacity>
+              <Text style={styles.label}>Nombre:</Text>
+              <TextInput style={styles.input} placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+              <Text style={styles.label}>Correo:</Text>
+              <TextInput style={styles.input} placeholder="Correo Electrónico" value={correo} onChangeText={setCorreo} />
+              <Text style={styles.label}>Telefono:</Text>
+              <TextInput style={styles.input} placeholder="Telefono" value={telefono} onChangeText={setTelefono} />
 
-            <View style={{ alignItems: "center" }}>
-              <TouchableOpacity style={styles.buttons} onPress={handleGuardarPerfil}><Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>GUARDAR</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.buttons2} onPress={() => setModoEdicion(false)}><Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>CANCELAR</Text></TouchableOpacity>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      ) : ( // --- Vista cuando NO está en modo edición ---
-        <SafeAreaView style={styles.container}>
-          <FlatList
-            data={publicaciones}
-            keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
-            renderItem={({ item }) => (
-              <View style={styles.item}>
-                <Image source={{ uri: item.image }} style={styles.imageFlat} />
-                <View style={styles.details}>
-                  <Text style={styles.titulo}>{item.titulo}</Text>
-                  <Text style={styles.estado}>Estado: {item.valor}</Text>
-                  <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
-                  <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
-                  <Text style={styles.localidad}>Usuario: {item.usuarioNombre}</Text>
-                  {expandedItemId === item.id && (
-                    <View >
-                      {/* Aquí puedes mostrar más información del item */}
-                      <Text style={styles.edad}>Edad: {item.edad}</Text>
-                      <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
-                      <Text style={styles.localidad}>Descripcioón: {item.descripcion}</Text>
-
-                      {/* Agrega aquí cualquier otra información que quieras mostrar */}
-                    </View>
-                  )}
-                  <TouchableOpacity onPress={() => toggleExpanded(item.id)}>
-                    <Text style={{ fontSize: 12, marginVertical: 4, color: 'blue' }}>
-                      {expandedItemId === item.id ? 'menos info...' : 'mas info...'}
-                    </Text>
+              <View style={{ alignItems: "center" }}>
+                {isGuardandoPerfil ? (
+                  <ActivityIndicator size="large" color={styles.celesteBg.backgroundColor} />
+                ) : (
+                  <TouchableOpacity style={styles.buttons} onPress={handleGuardarPerfil}>
+                    <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>GUARDAR</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.buttonsList, styles.rojoBg]}
-                    onPress={() => handleBorrarPublicacion(item.id)}
-                  ><Text style={styles.blanco}>BORRAR</Text>
-                  </TouchableOpacity>
-                </View>
+                )}
+                <TouchableOpacity style={styles.buttons3} onPress={() => setModoEdicion(false)}>
+                  <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>CANCELAR</Text>
+                </TouchableOpacity>
               </View>
-            )}
-            ListHeaderComponent={renderListHeader}
-            // ListFooterComponent={renderListFooter}
-            ListEmptyComponent={renderEmptyList}
-            contentContainerStyle={styles.listContentContainer}
-          />
-        </SafeAreaView>
-      )
+            </ScrollView>
+          </SafeAreaView>
+        ) : ( // --- Vista cuando NO está en modo edición ---
+          <SafeAreaView style={styles.container}>
+            <FlatList
+              data={publicaciones}
+              keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
+              renderItem={({ item }) => (
+                <View style={styles.item}>
+                  <Image source={{ uri: item.image }} style={styles.imageFlat} />
+                  <View style={styles.details}>
+                    <Text style={styles.titulo2}>{item.titulo}</Text>
+                    <Text style={styles.estado}>{item.valor}</Text>
+                    <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
+                    <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
+                    <Text style={styles.localidad}>Usuario: {item.usuarioNombre}</Text>
+                    {expandedItemId === item.id && (
+                      <View >
+                        {/* Aquí puedes mostrar más información del item */}
+                        <Text style={styles.edad}>Edad: {item.edad}</Text>
+                        <Text style={styles.localidad}>Traslado: {item.traslado}</Text>
+                        <Text style={styles.localidad}>Descripcioón: {item.descripcion}</Text>
 
-      }
-    </View>
+                        {/* Agrega aquí cualquier otra información que quieras mostrar */}
+                      </View>
+                    )}
+                    <TouchableOpacity onPress={() => toggleExpanded(item.id)}>
+                      <Text style={{ fontSize: 12, marginVertical: 4, color: 'blue' }}>
+                        {expandedItemId === item.id ? 'menos info...' : 'mas info...'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.buttonsList, styles.rojoBg]}
+                      onPress={() => handleBorrarPublicacion(item.id)}
+                    ><Text style={styles.blanco}>BORRAR</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              ListHeaderComponent={renderListHeader}
+              // ListFooterComponent={renderListFooter}
+              ListEmptyComponent={renderEmptyList}
+              contentContainerStyle={styles.listContentContainer}
+            /> 
+          </SafeAreaView>
+        )
+
+        }
+      </View>
     </View>
   );
 };
@@ -424,14 +470,16 @@ const styles = StyleSheet.create({
     paddingBottom: 0, // Ejemplo: añade espacio al final
   },
   datosContainer: { // Estilo opcional para los botones en el footer
-    marginTop: 20, // Ejemplo: añade espacio sobre los botones
-    paddingHorizontal: 20, // Ejemplo: alinea con el padding general si es necesario
-    alignItems: "center"
+    margin: 10, // Ejemplo: añade espacio sobre los botones
+    padding: 15, // Ejemplo: alinea con el padding general si es necesario
+    alignItems: "center",
+    borderRadius: 5,
+    backgroundColor: "#e1e1e1",
   },
   container: {
     flex: 1,
     padding: 5,
-    paddingBottom: 30
+
   },
   containerInicioSesion: {
     marginHorizontal: 15,
@@ -480,6 +528,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#452790",
   },
+  titulo2: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#452790",
+  },
   tituloPublicaciones: {
     fontSize: 24,
     fontWeight: "bold",
@@ -491,21 +544,18 @@ const styles = StyleSheet.create({
     height: 40,
     borderColor: "gray",
     borderWidth: 1,
-    marginBottom: 10,
+    margin: 10,
     paddingHorizontal: 10,
   },
 
 
   safeArea: { flex: 1 },
-  inputContainer: { flexDirection: "row", padding: 10 },
-  input3: { marginTop: 10, padding: 10, borderColor: "gray", borderWidth: 1 },
   details: { flex: 1, margin: 15 },
-  titulo2: { fontSize: 18, fontWeight: "bold" },
   edad: { fontSize: 14, color: "gray", paddingBottom: 5 },
   correo: { fontSize: 18, color: "#452790", paddingBottom: 5 },
   sexo: { fontSize: 14, color: "gray" },
   localidad: { fontSize: 14, color: "gray" },
-  estado: { fontSize: 16, color: "black", fontWeight: "bold" },
+  estado: { fontSize: 16, color: "#f01250", fontWeight: "bold", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 5, },
   image: {
     width: 160, height: 160, marginVertical: 10, backgroundColor: "gray", borderRadius: 80, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', alignSelf: "center" // Sombra para el botón
   },
@@ -515,6 +565,7 @@ const styles = StyleSheet.create({
   picker: { height: 60, width: "100%", marginTop: 0 },
   label: {
     paddingVertical: 5,
+    marginHorizontal: 10,
   },
 
   selectButton: {
@@ -525,7 +576,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 10,
     boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-
     width: 'auto',
     fontSize: 16,
     height: 40,
@@ -566,7 +616,20 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     marginBottom: 10,
     boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-
+    width: 240,
+    fontSize: 15,
+    height: 50,
+    alignItems: "center", // Centra el texto horizontalmente
+    justifyContent: "center", // Centra el texto verticalmente
+  },
+  buttons3: {
+    borderWidth: 2,
+    backgroundColor: "#f01250",
+    color: '#ffffff',
+    borderColor: 'white',
+    borderRadius: 40,
+    marginBottom: 10,
+    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
     width: 240,
     fontSize: 15,
     height: 50,
@@ -621,4 +684,8 @@ const styles = StyleSheet.create({
 
 export default Perfil;
 
+
+function rgb(arg0: number, arg1: number, arg2: number): any {
+  throw new Error("Function not implemented.");
+}
 

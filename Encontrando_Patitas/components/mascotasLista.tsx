@@ -188,7 +188,7 @@ const MascotasLista: React.FC<MascotasListaProps> = ({ filtroValor }) => {
 
               <View style={styles.details}>
                 <Text style={styles.titulo}>{item.titulo}</Text>
-                <Text style={styles.estado}>Estado: {item.valor}</Text>
+                <Text style={styles.estado}>{item.valor}</Text>
                 <Text style={styles.sexo}>Sexo: {item.sexo}</Text>
                 <Text style={styles.localidad}>Localidad: {item.localidad}</Text>
                 <Text style={styles.localidad}>Usuario: {item.usuarioNombre}</Text>
@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
   },
   safeArea: { flex: 1 },
   container: { flex: 1, marginBottom: 40 },
-  details: { flex: 1, margin: 10, },
+  details: { flex: 1, margin: 20, },
   titulo: { fontSize: 18, fontWeight: "bold" },
   edad: { fontSize: 14, color: "gray" },
   sexo: { fontSize: 14, color: "gray" },
   localidad: { fontSize: 14, color: "gray" },
-  estado: { fontSize: 18, color: "gray", fontWeight: "bold" },
+  estado: { fontSize: 16, color: "#f01250", fontWeight: "bold", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 5, },
   image: {
     width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
   },
@@ -274,7 +274,6 @@ const styles = StyleSheet.create({
 
   item: {
     flexDirection: "row",
-    marginBottom: 60,
     padding: 10,
     borderBottomWidth: 1,
     borderColor: '#452790',

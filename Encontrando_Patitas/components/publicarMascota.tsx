@@ -221,7 +221,7 @@ export default function PublicarMascota() {
             <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
                 <View style={[styles.modalContent, styles.modalContainer]}>
                     <ScrollView>
-                        <Pressable onPress={() => setModalVisible(false)} style={{marginBottom: 10}}>
+                        <Pressable onPress={() => setModalVisible(false)} style={{ marginBottom: 10 }}>
                             <MaterialIcons name="close" color="red" size={22} />
                         </Pressable>
                         <Text style={styles.titulo}>PUBLICAR UNA MASCOTA</Text>
@@ -286,14 +286,17 @@ export default function PublicarMascota() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1},
+    safeArea: { flex: 1 },
     container: { flex: 1, },
-    input: {   height: 40,
+    input: {
+        height: 40,
         width: 280,
+        borderRadius: 5,
         borderColor: "gray",
         borderWidth: 1,
         marginTop: 15,
-        paddingHorizontal: 10, alignSelf: 'center' },
+        paddingHorizontal: 10, alignSelf: 'center'
+    },
     details: { flex: 1, margin: 15 },
     titulo: { fontSize: 18, fontWeight: "bold", alignSelf: 'center' },
     edad: { fontSize: 14, color: "gray" },
@@ -303,13 +306,13 @@ const styles = StyleSheet.create({
     image: {
         width: 160, height: 260, marginBottom: 10, backgroundColor: "gray", borderRadius: 10, boxShadow: '0 6px 6px rgba(0, 0, 0, 0.29)', // Sombra para el botón
     },
-    picker: { height: 52, width: 200, marginTop: 0,marginLeft: 22, },
+    picker: { height: 52, width: 200, marginTop: 0, marginLeft: 22, },
     input2: {
         height: 40,
         marginTop: 8,
         marginLeft: 26,
         paddingHorizontal: 10,
-        
+
     },
     modalContainer: {
         flex: 1,
@@ -337,7 +340,6 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-        marginBottom: 30,
         width: 'auto',
         fontSize: 16,
         height: 60,
@@ -346,16 +348,16 @@ const styles = StyleSheet.create({
     },
     selectButton: {
         borderWidth: 2,
-    color: '#ffffff',
-    borderColor: 'white',
-    borderRadius: 40,
-    marginBottom: 10,
-    boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
-    width: 240,
-    fontSize: 15,
-    height: 50,
-    alignItems: "center", // Centra el texto horizontalmente
-    justifyContent: "center", // Centra el texto verticalmente
+        color: '#ffffff',
+        borderColor: 'white',
+        borderRadius: 40,
+        marginBottom: 10,
+        boxShadow: '0 6px 6px rgba(0, 0, 0, 0.39)', // Sombra para el botón
+        width: 240,
+        fontSize: 15,
+        height: 50,
+        alignItems: "center", // Centra el texto horizontalmente
+        justifyContent: "center", // Centra el texto verticalmente
     },
     selectButtonHome: {
         borderWidth: 1,
@@ -373,9 +375,9 @@ const styles = StyleSheet.create({
     },
     fixedButton: {
         position: "absolute", // Fija el botón
-        bottom: 0, // Espaciado desde la parte inferior
-        left: 35, // Espaciado desde la izquierda
-        right: 35, // Espaciado desde la derecha
+        bottom: -30, // Espaciado desde la parte inferior
+        right:20,
+        left:20,
         padding: 15, // Espaciado interno
         borderRadius: 30, // Bordes redondeados
         alignItems: "center", // Centra el texto horizontalmente
